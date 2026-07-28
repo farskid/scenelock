@@ -13,7 +13,16 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["packages/*/src/**/*.test.ts", "examples/*/src/**/*.test.ts"],
+    // root pins glob resolution to the repo root so per-package runs
+    // (vitest run --config ../../vitest.config.ts --dir .) still resolve
+    root: __dirname,
+    // first two patterns serve whole-repo runs; "src/**" serves per-package
+    // runs where --dir . rebases glob matching to the package directory
+    include: [
+      "packages/*/src/**/*.test.ts",
+      "examples/*/src/**/*.test.ts",
+      "src/**/*.test.ts",
+    ],
     environment: "node",
   },
 });
