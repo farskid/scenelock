@@ -26,8 +26,12 @@ export interface FailureArtifacts {
   axSnapshot?: string;
   /** Path to scene snapshot JSON at failure. */
   sceneSnapshot?: string;
-  /** Path to golden diff image when visual tier fails. */
+  /** Path to golden diff report (JSON) when visual tier fails. */
   goldenDiff?: string;
+  /** Path to actual raster golden written on mismatch. */
+  actualGolden?: string;
+  /** Path to expected (baseline) golden copied for inspection. */
+  expectedGolden?: string;
 }
 
 export interface FailureEnvelope {
@@ -62,7 +66,9 @@ export type ExecutionTier =
   /** Full integration in real Chromium via Playwright. */
   | "browser"
   /** Optional main-thread CDP virtual-time accelerator (not Creator default). */
-  | "virtual-time";
+  | "virtual-time"
+  /** Bit-exact golden / visual claim under a pinned software rasterizer. */
+  | "golden";
 
 /** Minimal JSON Schema draft-07 for FailureEnvelope (agent parsers). */
 export const FAILURE_ENVELOPE_JSON_SCHEMA = {
@@ -106,7 +112,7 @@ export const FAILURE_ENVELOPE_JSON_SCHEMA = {
     locator: { type: "object" },
     step: { type: "string" },
     seed: { type: "string" },
-    tier: { type: "string", enum: ["engine", "browser", "virtual-time"] },
+    tier: { type: "string", enum: ["engine", "browser", "virtual-time", "golden"] },
     artifacts: {
       type: "object",
       properties: {
@@ -115,6 +121,8 @@ export const FAILURE_ENVELOPE_JSON_SCHEMA = {
         axSnapshot: { type: "string" },
         sceneSnapshot: { type: "string" },
         goldenDiff: { type: "string" },
+        actualGolden: { type: "string" },
+        expectedGolden: { type: "string" },
       },
       additionalProperties: false,
     },

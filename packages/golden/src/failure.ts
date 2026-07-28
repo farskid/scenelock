@@ -21,10 +21,8 @@ export interface GoldenFailureContext {
 /**
  * Map a non-match {@link GoldenRunResult} to a core {@link FailureEnvelope}.
  *
- * Core `ExecutionTier` has no `"golden"` variant — goldens are a thin opt-in
- * under the engine tier (research 02). We set `tier: "engine"` and
- * `error.matcher: "golden"` so parsers can discriminate the visual claim.
- * Artifact paths point at actual / expected / diff-report files (never blobs).
+ * Uses `tier: "golden"` (core v2). Artifact paths point at actual / expected /
+ * diff-report files (never blobs).
  */
 export function toFailureEnvelope(
   result: GoldenRunResult,
@@ -39,17 +37,12 @@ export function toFailureEnvelope(
   if (result.artifacts?.diffReport !== undefined) {
     artifacts.goldenDiff = result.artifacts.diffReport;
   }
-  // Core FailureArtifacts only has goldenDiff for visual paths; stash actual/
-  // expected pointers on error.received so agents still get all three paths.
-  const pathBag = {
-    ...(result.artifacts?.actual !== undefined ? { actual: result.artifacts.actual } : {}),
-    ...(result.artifacts?.expected !== undefined
-      ? { expected: result.artifacts.expected }
-      : {}),
-    ...(result.artifacts?.diffReport !== undefined
-      ? { diffReport: result.artifacts.diffReport }
-      : {}),
-  };
+  if (result.artifacts?.actual !== undefined) {
+    artifacts.actualGolden = result.artifacts.actual;
+  }
+  if (result.artifacts?.expected !== undefined) {
+    artifacts.expectedGolden = result.artifacts.expected;
+  }
 
   return {
     testId: ctx.testId,
@@ -62,22 +55,10 @@ export function toFailureEnvelope(
       message,
       matcher,
       ...(expected !== undefined ? { expected } : {}),
-      received: {
-        ...pathBag,
-        ...(received !== undefined && typeof received === "object"
-          ? (received as Record<string, unknown>)
-          : received !== undefined
-            ? { value: received }
-            : {}),
-        verdict: result.verdict,
-      },
+      ...(received !== undefined ? { received } : {}),
     },
     seed: ctx.seed ?? "",
-    /**
-     * Nearest core tier: goldens run under engine (pinned software raster).
-     * Discriminator: error.matcher === "golden".
-     */
-    tier: "engine",
+    tier: "golden",
     artifacts,
     reportedAt: new Date().toISOString(),
     ...(ctx.line !== undefined ? { line: ctx.line } : {}),
@@ -133,9 +114,10 @@ function describeFailure(result: GoldenRunResult): {
         received: {
           hash: result.actualHash,
           dimensions: result.diff.actual,
-          differingPixelCount: result.report?.differingPixelCount,
-          boundingBox: result.report?.boundingBox,
-          samples: result.report?.samples,
+          differingPixelCount:
+            result.report?.differingPixelCount ?? result.diff.differingPixelCount,
+          boundingBox: result.report?.boundingBox ?? result.diff.boundingBox,
+          samples: result.report?.samples ?? result.diff.samples,
         },
       };
     default:
@@ -147,8 +129,12 @@ function describeFailure(result: GoldenRunResult): {
 }
 
 function formatMismatchMessage(result: GoldenRunResult): string {
-  const n = result.report?.differingPixelCount ?? result.diff.diffByteCount ?? "?";
-  const bbox = result.report?.boundingBox;
+  const n =
+    result.report?.differingPixelCount ??
+    result.diff.differingPixelCount ??
+    result.diff.diffByteCount ??
+    "?";
+  const bbox = result.report?.boundingBox ?? result.diff.boundingBox;
   const bboxStr = bbox
     ? ` bbox=(${bbox.x},${bbox.y},${bbox.width}×${bbox.height})`
     : "";

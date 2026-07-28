@@ -4,19 +4,16 @@ Phased plan for parallel coding agents. Each package is an independent work unit
 
 ---
 
-## Freeze rule (read first)
+## Freeze rule (historical — wave 1)
 
-After this scaffold lands on `main`:
+Wave 1 ran under a core freeze. **Wave 2 lifted the freeze** for the integrator: core v2 contracts are ratified and packages consume them. Further core changes should still prefer small, deliberate RFCs — but the hard freeze table below is **done**.
 
-| Path | Status |
-| --- | --- |
-| `packages/core/**` | **FROZEN** — contracts only change via a dedicated core-RFC PR |
-| Root configs (`package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`, `tsconfig.json`, `vitest.config.ts`, `eslint.config.js`, `.prettierrc`, `.gitignore`, `LICENSE`) | **FROZEN** |
-| `IMPLEMENTATION_PLAN.md`, `README.md` | Amend only in docs PRs |
-| `packages/{executor,scene,browser,discovery,golden}/**` | Owned by the agent assigned that package |
-| `examples/toy-canvas-app/**` | Integration owner (phase 4); others may **read** only |
-
-**Do not** edit another package's files. Depend on published workspace types from `@scenelock/core` only. If a contract gap blocks you, open a core-RFC note — do not silently widen types in your package.
+| Path | Wave-1 status | Wave-2 status |
+| --- | --- | --- |
+| `packages/core/**` | FROZEN | **Open** (v2 landed) |
+| Root configs | FROZEN | Amend carefully |
+| `IMPLEMENTATION_PLAN.md`, `README.md` | Docs PRs | Updated this wave |
+| Package sources | Per-agent ownership | Shared for integration |
 
 ---
 
@@ -25,12 +22,12 @@ After this scaffold lands on `main`:
 ```
                     ┌──────────────┐
                     │ @scenelock/  │
-                    │    core      │  ← FROZEN contracts
+                    │    core      │  ← v2 contracts
                     └──────┬───────┘
            ┌───────────────┼───────────────┐
            ▼               ▼               │
    ┌──────────────┐ ┌──────────────┐       │
-   │  executor    │ │    scene     │       │   phase 1 (parallel)
+   │  executor    │ │    scene     │       │
    └──────┬───────┘ └──────┬───────┘       │
           │                │               │
           └────────┬───────┘               │
@@ -38,17 +35,13 @@ After this scaffold lands on `main`:
      ┌─────────────┼─────────────┐  (core only)
      ▼             ▼             ▼
 ┌─────────┐  ┌─────────┐  ┌───────────┐
-│ browser │  │ golden  │  │ discovery │   phase 2 (parallel)
+│ browser │  │ golden  │  │ discovery │
 └────┬────┘  └────┬────┘  └─────┬─────┘
      │            │             │
      └────────────┼─────────────┘
                   ▼
-         examples/toy-canvas-app          phase 3
-                  ▼
-         integration / CI recipe          phase 4
+         examples/toy-canvas-app          ← e2e proof (wave 2)
 ```
-
-**Order:** `core` (done) → `executor` ∥ `scene` → `browser` ∥ `golden` ∥ `discovery` → `examples` → integration.
 
 ---
 
@@ -56,7 +49,8 @@ After this scaffold lands on `main`:
 
 | Tier | Runtime | Determinism source | Claims |
 | --- | --- | --- | --- |
-| **engine** | Node (+ WASM hosts later) | Seed + virtual clock + `StepLoopDriver` | Scene asserts, invariants, bit-exact goldens from software raster |
+| **engine** | Node (+ WASM hosts later) | Seed + virtual clock + `StepLoopDriver` | Scene asserts, invariants |
+| **golden** | Pinned software raster | Bit-exact RGBA + fingerprint | Visual claim (`tier: "golden"`) |
 | **browser** | Chromium via Playwright | Host step hook + `settled`, not CDP VT | Full integration (DOM chrome + canvas), COOP/COEP for SAB |
 | **virtual-time** | Optional CDP VT | Main-thread hosts only | Accelerator — **not** Creator default |
 
@@ -71,113 +65,59 @@ After this scaffold lands on `main`:
 
 ---
 
-## Phase 1 — Executor & Scene (parallel)
+## Wave 1 — Package implementations (done)
 
-### Work unit A: `@scenelock/executor`
+Commit `31605f2`. All packages implemented against frozen core; 118 tests green.
 
-**Owns:** `packages/executor/**`  
-**Imports:** `@scenelock/core` only  
-**Must not touch:** scene, browser, discovery, golden, examples
+### `@scenelock/executor` (done)
 
-| Task | Acceptance |
-| --- | --- |
-| Implement `SeededRandom` (mulberry32 or equivalent) from `Seed.numeric` | Same seed → identical `next()` sequence across runs/processes |
-| `SeedManager.derive(parent, label)` stable child seeds | `derive(a,"walk-1")` equals across machines |
-| Optional realm install: patch `Date.now` / `performance.now` behind `clock.install()` | Documented; off by default in browser tier |
-| `run()` isolates clock/random per invocation | Concurrent `run` calls do not share mutable clock state (create per-run clock copy or throw) |
-| Schedule-fuzz stub: `exploreSeeds(base, n)` API returning seed list | Unit tests only; no host required |
-| Export factory + tests | `pnpm --filter @scenelock/executor test` green; typecheck green |
+- [x] `SeededRandom` / `SeedManager.derive`
+- [x] Virtual clock + optional realm install
+- [x] `run()` isolation + schedule-fuzz stub `exploreSeeds`
+- [x] Step-loop controller (`stepN` / `stepUntil` with starvation cap)
 
-### Work unit B: `@scenelock/scene`
+### `@scenelock/scene` (done)
 
-**Owns:** `packages/scene/**`  
-**Imports:** `@scenelock/core` only  
-**Must not touch:** executor, browser, discovery, golden, examples
+- [x] Hardened `SceneQuery` + fake adapter kit
+- [x] `awaitSettled` + pointer targeting (`worldToScreen`)
+- [x] Adapter conformance suite
 
-| Task | Acceptance |
-| --- | --- |
-| Harden `SceneQuery` (regex name, state predicates) | Tests cover role/name/id/state |
-| Adapter test kit: `createFakeAdapter(nodes)` | Used by other packages' unit tests via public export |
-| Settledness helpers: timeout + error type wrapping `adapter.settled()` | Rejects with structured message on timeout |
-| Optional `RasterSurface` adapter helper | Thin wrap; no image I/O |
-| Docs comment: library-adapter distribution story (`@scenelock/adapter-*` later) | README section in package or root pointer |
+### `@scenelock/browser` (done)
 
----
+- [x] Playwright engine / session / harness
+- [x] A11y-primary locator bridge + auto-wait
+- [x] COOP/COEP helpers + failure envelopes
 
-## Phase 2 — Browser, Golden, Discovery (parallel)
+### `@scenelock/golden` (done)
 
-### Work unit C: `@scenelock/browser`
+- [x] Directory store + bit-exact compare + fingerprint drift
+- [x] Pixel-level diff reports + failure envelope mapping
 
-**Owns:** `packages/browser/**`  
-**Imports:** `@scenelock/core` (+ peer `playwright`)  
-**May read:** scene types from core only (bind `SceneAdapter` from page)  
-**Must not touch:** executor internals, discovery, golden, examples
+### `@scenelock/discovery` (done)
 
-| Task | Acceptance |
-| --- | --- |
-| Wrap `playwright` chromium launch/context/page | `newSession` returns working `BrowserSession` |
-| Implement `Harness` / `LocatorBridge` with a11y-primary policy | role → label/text → testId; structural throws unless `allowStructural` |
-| Auto-wait + web-first expects (poll until timeout) | No `waitForTimeout` in public API |
-| `goto` + COOP/COEP fixture headers helper | `crossOriginIsolated` assert helper exported |
-| Bind page-exposed scene adapter (`bindScene`) | `getBySceneId` aims real pointer at `locate()` bbox center |
-| Failure → `FailureEnvelope` (seed, tier:`browser`, artifact paths) | JSON matches `FAILURE_ENVELOPE_JSON_SCHEMA` required keys |
-| Headless default | Headed opt-in only |
-
-### Work unit D: `@scenelock/golden`
-
-**Owns:** `packages/golden/**`  
-**Imports:** `@scenelock/core`  
-**Must not touch:** other packages
-
-| Task | Acceptance |
-| --- | --- |
-| Filesystem `GoldenStore` (PNG or raw RGBA — pick one, document) | Read/write round-trip |
-| Bit-exact `compare` + optional diff PNG on mismatch | `verdict` discriminates match/mismatch/dimensions/missing |
-| `--update` path via `options.update` | Missing baseline written only when update=true |
-| Document rasterizer pin in package README | Copies/extends `RASTERIZER_ASSUMPTIONS`; no tolerance API |
-
-### Work unit E: `@scenelock/discovery`
-
-**Owns:** `packages/discovery/**`  
-**Imports:** `@scenelock/core`  
-**Must not touch:** browser/golden/examples (executor used only via `ExecutorContext` / `Harness` interfaces)
-
-| Task | Acceptance |
-| --- | --- |
-| Walk generator meeting `transition` + `walk-count` criteria | Coverage report numbers sane on toy model |
-| `DiscoveryRunner.runWalk` applies events through a supplied `applyEvent` hook | Invariants run after every step |
-| Ship 2 sample invariants: `undoRedoIdentity`, `snapshotStable` (over scene snapshot) | Unit-tested with fake harness |
-| XState v5 interop adapter (optional thin) | Maps machine → `StateModel` **or** document deferral |
-| Failed walks emit seeds in `DiscoveryReport.failedSeeds` | Replay token list non-empty on forced fail |
+- [x] Walk generator (transition / path / random / …)
+- [x] `WalkExecutor` seam + snapshot invariants
+- [x] Declarative model + XState mapping guide (no xstate dep)
 
 ---
 
-## Phase 3 — Example host
+## Wave 2 — Core v2 + e2e proof (done)
 
-### Work unit F: `examples/toy-canvas-app`
-
-**Owns:** `examples/toy-canvas-app/**`  
-**Imports:** core, executor, scene, golden, discovery (and browser later)
-
-| Task | Acceptance |
-| --- | --- |
-| Keep adapter in one file (adoption demo) | `createToySceneAdapter` remains the sole adapter surface |
-| Engine-tier tests: scene locate + step loop + invariant walk | Vitest green without Playwright |
-| Golden test against `app.render()` | Bit-exact under software path |
-| Minimal DOM shell (optional) for browser-tier smoke | Only after browser package lands |
+- [x] Core v2: fold wave-1 friction into contracts (`ExecutionTier.golden`, pixel `GoldenDiff`, timer `VirtualClock`, `stepN`/`stepUntil`, `runWithSeed` + failure-envelope hook, path/random coverage, `DiscoveryViolation` / `WalkExecutor`, `DeclarativeStateModel`, loosened `InvariantContext`, `extraHTTPHeaders`, SceneAdapter kit JSDoc)
+- [x] Toy canvas host rebuilt: rect/ellipse, add/move/select/delete/undo/redo, software raster, tween `step(dt)`
+- [x] Integration tests: flow, golden (committed `toy-raster-v1`), discovery + undo/redo identity, seed replay
+- [x] Docs: README status + quickstart; this plan marked done
 
 ---
 
-## Phase 4 — Integration
+## Remains (post wave 2)
 
-**Owner:** integration agent (may touch root CI only; still not core contracts)
-
-| Task | Acceptance |
+| Item | Notes |
 | --- | --- |
-| Root script `pnpm test` runs all package tests | CI-ready |
-| GitHub Actions: Node 20, pnpm cache, Chromium install optional job | PR gate = engine-tier; browser job optional/nightly at first |
-| JSON failure reporter wiring | One envelope schema both tiers |
-| CONTRIBUTING.md: freeze rule + package ownership | Linked from README |
+| **Real host spikes** | Creator / tldraw (or similar) adapter + engine-tier suite |
+| **Recorder** | Emit a11y-primary locators + scene ids; no structural by default |
+| **CLI** | Seed flags, `--update` goldens, failure-envelope reporter, walk replay |
+| Optional | GitHub Actions matrix; browser-tier nightly; library `@scenelock/adapter-*` packages |
 
 ---
 
@@ -190,8 +130,8 @@ After this scaffold lands on `main`:
 | `SceneAdapter`, `SceneNode`, `RasterSurface` | `core` | host apps + `scene` kit |
 | `Harness`, `Expectation` | `core` | `browser` (+ future engine harness) |
 | `BrowserEngine`, `BrowserSession` | `core` | `browser` |
-| `StateModel`, `Walk`, `Invariant`, `DiscoveryRunner` | `core` | `discovery` |
-| `GoldenCompare`, `RasterFrame` | `core` | `golden` |
+| `StateModel`, `DeclarativeStateModel`, `Walk`, `Invariant`, `WalkExecutor`, `DiscoveryRunner` | `core` | `discovery` |
+| `GoldenCompare`, `RasterFrame`, `GoldenDiff` | `core` | `golden` |
 
 ---
 
@@ -203,16 +143,3 @@ After this scaffold lands on `main`:
 - Hypervisor-level determinism (rr / Antithesis)
 - Publishing to npm (packaging shape TBD)
 - Creator / tldraw / Stately product PRs (downstream adopters)
-
----
-
-## Agent assignment template
-
-```
-Package: @scenelock/<name>
-Branch:  feat/<name>-<short-goal>
-Allowed paths: packages/<name>/**
-Forbidden: packages/core/**, root configs, other packages
-Contracts: import types from @scenelock/core only
-Done when: acceptance table rows checked + vitest green + typecheck green
-```

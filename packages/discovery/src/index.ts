@@ -10,13 +10,16 @@
 
 export type {
   CoverageCriterion,
+  DeclarativeStateModel,
   DiscoveryReport,
   DiscoveryRunner,
+  DiscoveryViolation,
   Invariant,
   InvariantContext,
   ModelEvent,
   ModelState,
   StateModel,
+  TransitionEdge,
   Walk,
   WalkGenerator,
   WalkStep,
@@ -34,8 +37,6 @@ export {
   transitionTag,
 } from "./model.js";
 export type {
-  DeclarativeStateModel,
-  TransitionEdge,
   ModelValidationError,
   ModelValidationResult,
   EnumeratedTransition,

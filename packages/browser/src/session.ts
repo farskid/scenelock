@@ -50,9 +50,10 @@ export class DriverBrowserSession implements BrowserSession {
     this.harnessImpl = harness;
   }
 
-  /** Construct and apply launch-time header hints (COOP/COEP). */
+  /** Construct and apply launch-time header hints (COOP/COEP + extraHTTPHeaders). */
   static async create(options: BrowserSessionOptions): Promise<DriverBrowserSession> {
     const headers: Record<string, string> = {
+      ...(options.launch?.extraHTTPHeaders ?? {}),
       ...(options.extraHTTPHeaders ?? {}),
     };
     if (options.launch?.crossOriginIsolated === true) {

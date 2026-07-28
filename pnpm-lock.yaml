@@ -35,9 +35,15 @@ importers:
       '@scenelock/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@scenelock/discovery':
+        specifier: workspace:*
+        version: link:../../packages/discovery
       '@scenelock/executor':
         specifier: workspace:*
         version: link:../../packages/executor
+      '@scenelock/golden':
+        specifier: workspace:*
+        version: link:../../packages/golden
       '@scenelock/scene':
         specifier: workspace:*
         version: link:../../packages/scene

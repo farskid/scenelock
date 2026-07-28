@@ -1,34 +1,26 @@
-import type { GoldenDiff, GoldenVerdict, RasterFrame } from "@scenelock/core";
+import type {
+  BBox,
+  GoldenDiff,
+  GoldenVerdict,
+  PixelDiffSample,
+  RasterFrame,
+  Rgba,
+} from "@scenelock/core";
 import { assertFrameShape, hashFrame } from "./hash.js";
 
-/** RGBA tuple. */
-export type Rgba = readonly [number, number, number, number];
+export type { Rgba, PixelDiffSample };
 
-/** One differing pixel sample for agent-readable reports (no image dumps). */
-export interface PixelDiffSample {
-  x: number;
-  y: number;
-  /** Byte index of the R channel in the flat RGBA buffer. */
-  byteOffset: number;
-  actual: Rgba;
-  expected: Rgba;
-}
-
-/** Axis-aligned bounding box of differing pixels (inclusive min, exclusive max → width/height). */
-export interface DiffBoundingBox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+/** @deprecated Use {@link BBox} from `@scenelock/core`. */
+export type DiffBoundingBox = BBox;
 
 /**
  * Token-cheap structured pixel diff (research 04 — pointers/text, not image blobs).
+ * Prefer folding into {@link GoldenDiff}; kept for package-local compare helpers.
  */
 export interface DiffReport {
   differingPixelCount: number;
   /** Null when zero differing pixels. */
-  boundingBox: DiffBoundingBox | null;
+  boundingBox: BBox | null;
   /** First N differing coordinates with actual/expected RGBA. */
   samples: PixelDiffSample[];
   firstDiffByte: number;
@@ -183,6 +175,9 @@ export function toGoldenDiff(result: FrameCompareResult, diffPath?: string): Gol
   if (result.report) {
     return {
       ...base,
+      differingPixelCount: result.report.differingPixelCount,
+      boundingBox: result.report.boundingBox,
+      samples: result.report.samples,
       firstDiffByte: result.report.firstDiffByte,
       diffByteCount: result.report.diffByteCount,
       ...(result.expected !== undefined ? { expected: result.expected } : {}),

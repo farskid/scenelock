@@ -17,6 +17,8 @@ export interface BrowserLaunchOptions {
    * Test server must serve COOP: same-origin + COEP: require-corp.
    */
   crossOriginIsolated?: boolean;
+  /** Extra HTTP headers applied to the browser context (and optional test server). */
+  extraHTTPHeaders?: Readonly<Record<string, string>>;
 }
 
 export interface BrowserSession {

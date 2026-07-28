@@ -1,10 +1,14 @@
-import type { StepLoopDriver, VirtualClock } from "@scenelock/core";
+import type {
+  StepLoopDriver,
+  StepUntilOptions,
+  VirtualClock,
+} from "@scenelock/core";
 
 /** Default starvation cap when {@link StepUntilOptions.maxSteps} is omitted. */
 export const DEFAULT_STEP_UNTIL_MAX_STEPS = 10_000;
 
 /**
- * Thrown when {@link StepLoopController.stepUntil} hits its step budget
+ * Thrown when {@link StepLoopDriver.stepUntil} hits its step budget
  * without the predicate becoming true (ticket 12: budget + cap mandatory).
  */
 export class StepStarvationError extends Error {
@@ -29,7 +33,7 @@ export interface HostStepLoop {
 }
 
 export interface StepLoopDriverOptions {
-  /** Fixed delta applied on each {@link StepLoopController.step} / stepUntil iteration. */
+  /** Fixed delta applied on each {@link StepLoopDriver.step} / stepUntil iteration. */
   fixedDtMs: number;
   /**
    * When set, each step also advances this virtual clock by `fixedDtMs`
@@ -40,23 +44,13 @@ export interface StepLoopDriverOptions {
   maxSteps?: number;
 }
 
-export interface StepUntilOptions {
-  /** Hard cap on steps; throws {@link StepStarvationError} when exceeded. */
-  maxSteps?: number;
-}
-
 /**
- * Package-level driver that owns fixed-dt stepping + stepUntil over a host loop.
- * Satisfies core {@link StepLoopDriver} (`step` / `settled`) and adds starvation-capped waits.
+ * Package driver with fixed-dt metadata on top of core {@link StepLoopDriver}.
+ * Guarantees `stepN` / `stepUntil` (optional on bare {@link StepLoopDriver}).
  */
 export interface StepLoopController extends StepLoopDriver {
   readonly fixedDtMs: number;
-  /** Run exactly `n` fixed-dt steps (each followed by settled). */
   stepN(n: number): Promise<void>;
-  /**
-   * Step with fixed dt until `predicate` is true.
-   * Always bounded: throws {@link StepStarvationError} if the cap is hit.
-   */
   stepUntil(
     predicate: () => boolean | Promise<boolean>,
     options?: StepUntilOptions,
@@ -65,7 +59,7 @@ export interface StepLoopController extends StepLoopDriver {
 
 /**
  * Wrap a host `step(dt)` loop with fixed-dt driving, optional clock integration,
- * and a mandatory starvation cap on {@link StepLoopController.stepUntil}.
+ * and a mandatory starvation cap on {@link StepLoopDriver.stepUntil}.
  */
 export function createStepLoopDriver(
   host: HostStepLoop,
@@ -105,7 +99,7 @@ export function createStepLoopDriver(
     settled,
     async stepN(n: number): Promise<void> {
       if (!Number.isInteger(n) || n < 0) {
-        throw new Error("StepLoopController.stepN: n must be a non-negative integer");
+        throw new Error("StepLoopDriver.stepN: n must be a non-negative integer");
       }
       for (let i = 0; i < n; i++) {
         await stepAndSettle(options.fixedDtMs);

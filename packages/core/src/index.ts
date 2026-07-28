@@ -28,7 +28,7 @@ export { FAILURE_ENVELOPE_JSON_SCHEMA } from "./failure.js";
 
 export type { SeedInput, Seed, SeededRandom, SeedManager } from "./seed.js";
 
-export type { VirtualClock, ClockOptions } from "./clock.js";
+export type { VirtualClock, ClockOptions, TimerHandle } from "./clock.js";
 
 export type {
   SceneNode,
@@ -40,6 +40,7 @@ export type {
 
 export type {
   StepLoopDriver,
+  StepUntilOptions,
   ExecutorContext,
   ExecutorOptions,
   DeterministicExecutor,
@@ -59,19 +60,25 @@ export type {
 export type {
   ModelEvent,
   ModelState,
+  TransitionEdge,
+  DeclarativeStateModel,
   StateModel,
   WalkStep,
   Walk,
   CoverageCriterion,
   WalkGenerator,
+  DiscoveryViolation,
   InvariantContext,
   Invariant,
+  WalkExecutor,
   DiscoveryRunner,
   DiscoveryReport,
 } from "./discovery.js";
 
 export type {
   RasterFrame,
+  Rgba,
+  PixelDiffSample,
   GoldenVerdict,
   GoldenDiff,
   GoldenStore,

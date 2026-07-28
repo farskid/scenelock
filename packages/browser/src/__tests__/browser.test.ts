@@ -32,6 +32,7 @@ function fakeSeed(value = "seed-1"): Seed {
 
 function fakeClock(): VirtualClock {
   let t = 0;
+  let nextId = 1;
   return {
     now: () => t,
     advance: (d) => {
@@ -40,6 +41,11 @@ function fakeClock(): VirtualClock {
     set: (ms) => {
       t = ms;
     },
+    setTimeout: () => ({ id: nextId++ }),
+    setInterval: () => ({ id: nextId++ }),
+    clearTimeout: () => undefined,
+    clearInterval: () => undefined,
+    pendingTimers: () => 0,
   };
 }
 

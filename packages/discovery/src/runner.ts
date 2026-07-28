@@ -2,6 +2,7 @@ import type {
   CoverageCriterion,
   DiscoveryReport,
   DiscoveryRunner,
+  DiscoveryViolation,
   ExecutorContext,
   Harness,
   Invariant,
@@ -11,6 +12,7 @@ import type {
   StateModel,
   VirtualClock,
   Walk,
+  WalkExecutor as CoreWalkExecutor,
 } from "@scenelock/core";
 import {
   InvariantViolationError,
@@ -26,27 +28,17 @@ import {
   coveredTransitions,
   createWalkGenerator,
   type DiscoveryWalkGenerator,
-  type ExtendedCoverageCriterion,
 } from "./walks.js";
 
 /**
- * Abstract walk execution — harness/DSL binds real interactions later.
- * Discovery only needs apply + optional speculative probe for combinators.
+ * Package WalkExecutor: core seam + typed {@link SnapshotContext} returns.
  */
-export interface WalkExecutor {
-  /** Called once before steps; default snapshot is `null`. */
+export interface WalkExecutor extends CoreWalkExecutor {
   begin?(walk: Walk, initial: ModelState): SnapshotContext | Promise<SnapshotContext>;
-  /** Apply one event; return snapshot context for invariant checks. */
   applyEvent(
     event: ModelEvent,
     state: ModelState,
   ): SnapshotContext | Promise<SnapshotContext>;
-  /**
-   * Speculative: snapshot after `events` from the current committed state
-   * without permanently advancing the walk (fork or undo). Needed by
-   * `roundTrip` / `idempotent`.
-   */
-  probe?(events: readonly ModelEvent[]): unknown | Promise<unknown>;
 }
 
 export interface WalkRunResult {
@@ -60,7 +52,7 @@ export interface WalkRunResult {
 }
 
 export interface ExtendedDiscoveryReport extends DiscoveryReport {
-  readonly violations: readonly InvariantViolation[];
+  readonly violations: readonly DiscoveryViolation[];
   readonly walkResults: readonly WalkRunResult[];
   /** transitionsHit / transitionsTotal */
   readonly transitionCoverageRatio: number;
@@ -88,10 +80,10 @@ export interface DiscoveryRunnerApi extends DiscoveryRunner {
     model: StateModel,
     invariants: readonly SnapshotInvariant[],
   ): Promise<WalkRunResult>;
-  /** Generate + run with extended criteria and snapshot invariants. */
+  /** Generate + run with coverage criteria and snapshot invariants. */
   runAllSnapshots(
     model: StateModel,
-    criterion: ExtendedCoverageCriterion,
+    criterion: CoverageCriterion,
     invariants: readonly SnapshotInvariant[],
     seed: Seed,
   ): Promise<ExtendedDiscoveryReport>;
@@ -99,6 +91,7 @@ export interface DiscoveryRunnerApi extends DiscoveryRunner {
 
 function stubClock(): VirtualClock {
   let now = 0;
+  let nextId = 1;
   return {
     now: () => now,
     set(ms: number) {
@@ -107,6 +100,19 @@ function stubClock(): VirtualClock {
     advance(ms: number) {
       now += ms;
     },
+    setTimeout() {
+      return { id: nextId++ };
+    },
+    setInterval() {
+      return { id: nextId++ };
+    },
+    clearTimeout() {
+      /* no-op stub */
+    },
+    clearInterval() {
+      /* no-op stub */
+    },
+    pendingTimers: () => 0,
     install() {
       /* no-op stub */
     },
@@ -305,7 +311,7 @@ export function createDiscoveryRunner(options: DiscoveryRunnerOptions): Discover
 
   const runAllSnapshots = async (
     model: StateModel,
-    criterion: ExtendedCoverageCriterion,
+    criterion: CoverageCriterion,
     invariants: readonly SnapshotInvariant[],
     seed: Seed,
   ): Promise<ExtendedDiscoveryReport> => {
@@ -326,7 +332,7 @@ export function createDiscoveryRunner(options: DiscoveryRunnerOptions): Discover
     },
 
     async runAll(model, criterion, invariants, seed): Promise<DiscoveryReport> {
-      const walks = generator.generate(model, criterion as CoverageCriterion, seed);
+      const walks = generator.generate(model, criterion, seed);
       const results: WalkRunResult[] = [];
       for (const walk of walks) {
         results.push(
@@ -334,14 +340,13 @@ export function createDiscoveryRunner(options: DiscoveryRunnerOptions): Discover
         );
       }
       const report = aggregate(model, results, walks.length);
-      // Return core-shaped report (extra fields are OK structurally for callers that want them,
-      // but DiscoveryReport type only guarantees the base fields).
       return {
         walksPlanned: report.walksPlanned,
         walksPassed: report.walksPassed,
         walksFailed: report.walksFailed,
         coverage: report.coverage,
         failedSeeds: report.failedSeeds,
+        violations: report.violations,
       };
     },
 

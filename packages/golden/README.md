@@ -43,4 +43,4 @@ Self-contained `.golden` files (no PNG deps):
 
 ## Failure envelope
 
-`toFailureEnvelope` maps mismatches to core `FailureEnvelope` with `tier: "engine"` (nearest core tier; core has no `"golden"` variant) and `error.matcher: "golden"`. Artifact paths: actual / expected / diff-report.
+`toFailureEnvelope` maps mismatches to core `FailureEnvelope` with `tier: "golden"` and `error.matcher: "golden"`. Artifact paths: `actualGolden` / `expectedGolden` / `goldenDiff`.

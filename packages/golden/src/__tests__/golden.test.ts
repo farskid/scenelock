@@ -286,7 +286,7 @@ describe("createGoldenCompare / memory store", () => {
 });
 
 describe("toFailureEnvelope", () => {
-  it("maps mismatch to engine-tier envelope with golden matcher + artifact paths", async () => {
+  it("maps mismatch to golden-tier envelope with matcher + artifact paths", async () => {
     const dir = await tempDir();
     const store = new DirectoryGoldenStore({ directory: dir, rasterizerFingerprint: FP });
     const baseline = solid(2, 2, [0, 0, 0, 255]);
@@ -302,15 +302,13 @@ describe("toFailureEnvelope", () => {
       seed: "seed-1",
     });
 
-    expect(envelope.tier).toBe("engine");
+    expect(envelope.tier).toBe("golden");
     expect(envelope.status).toBe("failed");
     expect(envelope.error.matcher).toBe("golden");
     expect(envelope.artifacts.goldenDiff).toBe(result.artifacts?.diffReport);
+    expect(envelope.artifacts.actualGolden).toBe(result.artifacts?.actual);
+    expect(envelope.artifacts.expectedGolden).toBe(result.artifacts?.expected);
     expect(envelope.seed).toBe("seed-1");
-    const received = envelope.error.received as Record<string, unknown>;
-    expect(received.actual).toBe(result.artifacts?.actual);
-    expect(received.expected).toBe(result.artifacts?.expected);
-    expect(received.diffReport).toBe(result.artifacts?.diffReport);
   });
 
   it("maps fingerprint drift with environment-drift matcher", async () => {

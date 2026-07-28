@@ -4,7 +4,9 @@ import type {
   GoldenDiff,
   GoldenStore,
   GoldenVerdict,
+  PixelDiffSample,
   RasterFrame,
+  Rgba,
 } from "@scenelock/core";
 
 /**
@@ -32,7 +34,9 @@ export type {
   GoldenDiff,
   GoldenStore,
   GoldenVerdict,
+  PixelDiffSample,
   RasterFrame,
+  Rgba,
 };
 
 export {
@@ -59,8 +63,6 @@ export {
   compareFrames,
   framesEqual,
   toGoldenDiff,
-  type Rgba,
-  type PixelDiffSample,
   type DiffBoundingBox,
   type DiffReport,
   type CompareFramesOptions,

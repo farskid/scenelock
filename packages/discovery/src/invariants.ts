@@ -1,4 +1,10 @@
-import type { Invariant, InvariantContext, ModelEvent, Walk } from "@scenelock/core";
+import type {
+  DiscoveryViolation,
+  Invariant,
+  InvariantContext,
+  ModelEvent,
+  Walk,
+} from "@scenelock/core";
 import { jsonStableEqual } from "./equal.js";
 
 /**
@@ -30,26 +36,17 @@ export interface SnapshotInvariantArgs {
 /**
  * Package-native invariant: name + check → ok/violation.
  *
- * Core {@link Invariant} requires `Harness` + `ExecutorContext` — friction for
- * pure model tests. Prefer {@link SnapshotInvariant}; bridge with
- * {@link toCoreInvariant} when a harness is bound.
+ * Core {@link InvariantContext} harness/ctx are optional (v2) so pure model
+ * invariants work. Prefer {@link SnapshotInvariant} for walk executors;
+ * bridge with {@link toCoreInvariant} when needed.
  */
 export interface SnapshotInvariant {
   readonly name: string;
   check(ctx: SnapshotInvariantArgs): InvariantCheckResult | Promise<InvariantCheckResult>;
 }
 
-/** Structured violation for discovery reports / repro. */
-export interface InvariantViolation {
-  readonly invariantName: string;
-  readonly message: string;
-  readonly walkId: string;
-  /** Seed of the failing walk (replay token). */
-  readonly seed: string;
-  /** Exact action sequence prefix that reached the violation (inclusive). */
-  readonly reproSteps: readonly ModelEvent[];
-  readonly stepIndex: number;
-}
+/** @deprecated Use {@link DiscoveryViolation} from `@scenelock/core`. */
+export type InvariantViolation = DiscoveryViolation;
 
 export class InvariantViolationError extends Error {
   readonly violation: InvariantViolation;

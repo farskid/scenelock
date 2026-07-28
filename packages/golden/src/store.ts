@@ -5,6 +5,7 @@ import type {
   GoldenCompareOptions,
   GoldenDiff,
   GoldenStore,
+  GoldenVerdict,
   RasterFrame,
 } from "@scenelock/core";
 import { FINGERPRINT_DRIFT_CODE } from "./assumptions.js";
@@ -17,21 +18,15 @@ import {
 } from "./format.js";
 import { hashFrame } from "./hash.js";
 
-/** Extended run verdicts beyond core {@link import("@scenelock/core").GoldenVerdict}. */
-export type GoldenRunVerdict =
-  | "match"
-  | "mismatch"
-  | "missing-baseline"
-  | "dimension-mismatch"
-  | "fingerprint-drift"
-  | "updated";
+/** @deprecated Use {@link GoldenVerdict} from `@scenelock/core`. */
+export type GoldenRunVerdict = GoldenVerdict;
 
 /**
  * Full compare result for directory store runs.
  * Core {@link GoldenDiff} is available via {@link GoldenRunResult.diff}.
  */
 export interface GoldenRunResult {
-  verdict: GoldenRunVerdict;
+  verdict: GoldenVerdict;
   testId: string;
   diff: GoldenDiff;
   /** Structured pixel report on mismatch. */
@@ -207,9 +202,11 @@ export class DirectoryGoldenStore implements GoldenStore {
         verdict: "fingerprint-drift",
         testId: key,
         diff: {
-          verdict: "mismatch",
+          verdict: "fingerprint-drift",
           expected: { width: entry.frame.width, height: entry.frame.height },
           actual: { width: actual.width, height: actual.height },
+          storedFingerprint: entry.rasterizerFingerprint,
+          runFingerprint: this.rasterizerFingerprint,
         },
         storedFingerprint: entry.rasterizerFingerprint,
         runFingerprint: this.rasterizerFingerprint,

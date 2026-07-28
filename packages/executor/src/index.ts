@@ -11,7 +11,9 @@ export type {
   ExecutorContext,
   ExecutorOptions,
   StepLoopDriver,
+  StepUntilOptions,
   VirtualClock,
+  TimerHandle,
   Seed,
   SeedInput,
   SeedManager,
@@ -32,7 +34,6 @@ export { createSeededRandom } from "./random.js";
 export {
   createVirtualClock,
   type ScheduledVirtualClock,
-  type TimerHandle,
 } from "./clock.js";
 export {
   createStepLoopDriver,
@@ -41,7 +42,6 @@ export {
   type HostStepLoop,
   type StepLoopDriverOptions,
   type StepLoopController,
-  type StepUntilOptions,
 } from "./step-loop.js";
 export {
   buildFailureEnvelope,

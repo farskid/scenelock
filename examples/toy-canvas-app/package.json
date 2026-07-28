@@ -19,7 +19,9 @@
   "dependencies": {
     "@scenelock/core": "workspace:*",
     "@scenelock/scene": "workspace:*",
-    "@scenelock/executor": "workspace:*"
+    "@scenelock/executor": "workspace:*",
+    "@scenelock/golden": "workspace:*",
+    "@scenelock/discovery": "workspace:*"
   },
   "license": "MIT",
   "main": "./src/index.ts",

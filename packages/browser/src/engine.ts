@@ -25,10 +25,8 @@ interface OwnedBrowser {
   }>;
 }
 
-export interface CreateBrowserEngineOptions extends BrowserLaunchOptions {
-  /** Extra HTTP headers applied to every new session context. */
-  readonly extraHTTPHeaders?: Readonly<Record<string, string>>;
-}
+/** Engine factory options — same as core {@link BrowserLaunchOptions}. */
+export type CreateBrowserEngineOptions = BrowserLaunchOptions;
 
 export function createBrowserEngine(options: CreateBrowserEngineOptions = {}): BrowserEngine {
   let browser: OwnedBrowser | undefined;

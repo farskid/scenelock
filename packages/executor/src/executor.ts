@@ -4,15 +4,14 @@ import type {
   ExecutorContext,
   ExecutorOptions,
   Seed,
+  SeedInput,
   SeedManager,
   SeededRandom,
   StepLoopDriver,
   ExecutionTier,
+  VirtualClock,
 } from "@scenelock/core";
-import {
-  createVirtualClock,
-  type ScheduledVirtualClock,
-} from "./clock.js";
+import { createVirtualClock } from "./clock.js";
 import { buildFailureEnvelope, ExecutorFailure } from "./failure.js";
 import { defaultSeedManager } from "./seed.js";
 
@@ -22,9 +21,10 @@ interface ExecutorState {
   seeds: SeedManager;
   clockOptions: ExecutorOptions["clock"];
   stepLoop: StepLoopDriver | undefined;
+  onFailureEnvelope: ExecutorOptions["onFailureEnvelope"];
   /** Guards concurrent run() — overlapping calls throw. */
   running: boolean;
-  clock: ScheduledVirtualClock;
+  clock: VirtualClock;
   random: SeededRandom;
 }
 
@@ -57,6 +57,46 @@ function createContext(state: ExecutorState): ExecutorContext {
   };
 }
 
+async function runBody<T>(
+  state: ExecutorState,
+  fn: (ctx: ExecutorContext) => T | Promise<T>,
+): Promise<T> {
+  if (state.running) {
+    throw new Error(
+      "DeterministicExecutor.run: concurrent run() is not supported; create a separate executor",
+    );
+  }
+  state.running = true;
+  const started = Date.now();
+  try {
+    // Per-invocation isolation: fresh clock + PRNG from the same seed.
+    state.clock = createVirtualClock(state.clockOptions);
+    state.random = state.seeds.random(state.seed);
+
+    const ctx = createContext(state);
+    return await fn(ctx);
+  } catch (error) {
+    if (error instanceof ExecutorFailure) {
+      throw error;
+    }
+    const durationMs = Math.max(0, Date.now() - started);
+    const envelope = buildFailureEnvelope({
+      testId: "executor::run",
+      file: "unknown",
+      title: "run",
+      seed: state.seed,
+      tier: state.tier,
+      error,
+      status: "failed",
+      durationMs,
+    });
+    state.onFailureEnvelope?.(envelope);
+    throw new ExecutorFailure(envelope);
+  } finally {
+    state.running = false;
+  }
+}
+
 /**
  * Create a {@link DeterministicExecutor} for one logical test seed.
  *
@@ -78,6 +118,7 @@ export function createExecutor(options: ExecutorOptions = {}): DeterministicExec
     seeds,
     clockOptions: options.clock,
     stepLoop: options.stepLoop,
+    onFailureEnvelope: options.onFailureEnvelope,
     running: false,
     clock,
     random,
@@ -96,39 +137,20 @@ export function createExecutor(options: ExecutorOptions = {}): DeterministicExec
     get tier() {
       return state.tier;
     },
-    async run<T>(fn: (ctx: ExecutorContext) => T | Promise<T>): Promise<T> {
-      if (state.running) {
-        throw new Error(
-          "DeterministicExecutor.run: concurrent run() is not supported; create a separate executor",
-        );
-      }
-      state.running = true;
-      const started = Date.now();
+    run: (fn) => runBody(state, fn),
+    async runWithSeed(seedInput, fn) {
+      const rebound = seeds.create(seedInput);
+      const saved = {
+        seed: state.seed,
+        random: state.random,
+      };
+      state.seed = rebound;
+      state.random = seeds.random(rebound);
       try {
-        // Per-invocation isolation: fresh clock + PRNG from the same seed.
-        state.clock = createVirtualClock(state.clockOptions);
-        state.random = state.seeds.random(state.seed);
-
-        const ctx = createContext(state);
-        return await fn(ctx);
-      } catch (error) {
-        if (error instanceof ExecutorFailure) {
-          throw error;
-        }
-        const durationMs = Math.max(0, Date.now() - started);
-        const envelope = buildFailureEnvelope({
-          testId: "executor::run",
-          file: "unknown",
-          title: "run",
-          seed: state.seed,
-          tier: state.tier,
-          error,
-          status: "failed",
-          durationMs,
-        });
-        throw new ExecutorFailure(envelope);
+        return await runBody(state, fn);
       } finally {
-        state.running = false;
+        state.seed = saved.seed;
+        state.random = saved.random;
       }
     },
     withStepLoop(driver: StepLoopDriver): DeterministicExecutor {
@@ -149,7 +171,7 @@ export async function runWithSeed<T>(
   fn: (ctx: ExecutorContext) => T | Promise<T>,
   options: Omit<ExecutorOptions, "seed"> = {},
 ): Promise<T> {
-  const seedInput =
+  const seedInput: SeedInput =
     typeof seed === "object" && seed !== null && "value" in seed
       ? seed.value
       : seed;

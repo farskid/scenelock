@@ -15,9 +15,10 @@ describe("@scenelock/core contracts", () => {
     expect(DEFAULT_LOCATOR_PRIORITY.at(-1)).toBe("testId");
   });
 
-  it("defines a failure envelope schema with seed + tier", () => {
+  it("defines a failure envelope schema with seed + tier including golden", () => {
     expect(FAILURE_ENVELOPE_JSON_SCHEMA.required).toContain("seed");
     expect(FAILURE_ENVELOPE_JSON_SCHEMA.required).toContain("tier");
+    expect(FAILURE_ENVELOPE_JSON_SCHEMA.properties.tier.enum).toContain("golden");
     const sample: FailureEnvelope = {
       testId: "demo::settled",
       file: "demo.test.ts",
@@ -28,10 +29,11 @@ describe("@scenelock/core contracts", () => {
       error: { message: "boom" },
       seed: "abc123",
       tier: "engine",
-      artifacts: {},
+      artifacts: { actualGolden: "/tmp/a.golden", expectedGolden: "/tmp/e.golden" },
       reportedAt: new Date(0).toISOString(),
     };
     expect(sample.seed).toBe("abc123");
+    expect(sample.artifacts.actualGolden).toBeDefined();
   });
 
   it("scene adapter surface is snapshot / locate / settled", () => {

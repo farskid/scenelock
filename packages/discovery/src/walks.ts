@@ -18,13 +18,9 @@ import {
 import { hashString, mulberry32 } from "./random.js";
 
 /**
- * Extended criteria beyond frozen {@link CoverageCriterion}.
- * Ticket 15 should ratify these kinds (or fold into core via RFC).
+ * @deprecated Use {@link CoverageCriterion} from `@scenelock/core` (path/random ratified in v2).
  */
-export type ExtendedCoverageCriterion =
-  | CoverageCriterion
-  | { kind: "path"; maxDepth: number }
-  | { kind: "random"; count: number; maxLength: number };
+export type ExtendedCoverageCriterion = CoverageCriterion;
 
 export interface RandomWalkOptions {
   readonly count: number;
@@ -32,12 +28,7 @@ export interface RandomWalkOptions {
 }
 
 export interface DiscoveryWalkGenerator extends WalkGenerator {
-  /** Core + extended criteria. */
-  generate(
-    model: StateModel,
-    criterion: ExtendedCoverageCriterion,
-    seed: Seed,
-  ): Walk[];
+  generate(model: StateModel, criterion: CoverageCriterion, seed: Seed): Walk[];
   /**
    * Every transition at least once — greedy path cover
    * (new walk when stuck; prefers unused outgoing edges).

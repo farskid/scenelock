@@ -1,23 +1,12 @@
-import type { ModelEvent, ModelState, StateModel } from "@scenelock/core";
+import type {
+  DeclarativeStateModel,
+  ModelEvent,
+  ModelState,
+  StateModel,
+  TransitionEdge,
+} from "@scenelock/core";
 
-/**
- * Declarative transition-table shape used for validation and easy authoring.
- * {@link StateModel} in `@scenelock/core` is the runtime interface (methods);
- * this table is the plain-object form we validate and compile.
- */
-export interface TransitionEdge {
-  readonly from: string;
-  readonly event: string;
-  readonly to: string;
-  readonly payload?: Readonly<Record<string, unknown>>;
-}
-
-export interface DeclarativeStateModel {
-  readonly id: string;
-  readonly initial: string;
-  readonly states: readonly string[];
-  readonly transitions: readonly TransitionEdge[];
-}
+export type { DeclarativeStateModel, TransitionEdge };
 
 export interface ModelValidationError {
   readonly code:

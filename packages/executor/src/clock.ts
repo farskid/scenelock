@@ -1,9 +1,4 @@
-import type { ClockOptions, VirtualClock } from "@scenelock/core";
-
-/** Opaque handle returned by {@link ScheduledVirtualClock.setTimeout}. */
-export interface TimerHandle {
-  readonly id: number;
-}
+import type { ClockOptions, TimerHandle, VirtualClock } from "@scenelock/core";
 
 type TimerKind = "timeout" | "interval";
 
@@ -17,20 +12,13 @@ interface TimerEntry {
 }
 
 /**
- * Virtual clock with deterministic timer scheduling.
- * Extends the core {@link VirtualClock} contract with setTimeout/setInterval
- * semantics. Due timers fire in `(dueTime, insertionOrder)` order on advance.
+ * @deprecated Use {@link VirtualClock} from `@scenelock/core` (timer API is now core).
+ * Kept as a type alias for wave-1 import compatibility.
  */
-export interface ScheduledVirtualClock extends VirtualClock {
-  /** Schedule a one-shot callback after `delayMs` virtual milliseconds. */
-  setTimeout(fn: () => void, delayMs: number): TimerHandle;
-  /** Schedule a repeating callback every `intervalMs` virtual milliseconds. */
-  setInterval(fn: () => void, intervalMs: number): TimerHandle;
-  clearTimeout(handle: TimerHandle): void;
-  clearInterval(handle: TimerHandle): void;
-  /** Number of pending (non-cleared) timers. */
-  pendingTimers(): number;
-}
+export type ScheduledVirtualClock = VirtualClock;
+
+/** Re-export core handle for package consumers. */
+export type { TimerHandle };
 
 interface RealmHooks {
   dateNow: () => number;
@@ -41,10 +29,10 @@ interface RealmHooks {
  * Create a harness virtual clock. Origin defaults to 0.
  * Realm install (`Date.now` / `performance.now`) is opt-in via {@link VirtualClock.install}
  * and is off by default for the browser tier (document: do not install into the page).
+ *
+ * Due timers fire in `(dueTime, insertionOrder)` order on advance/set.
  */
-export function createVirtualClock(
-  options: ClockOptions = {},
-): ScheduledVirtualClock {
+export function createVirtualClock(options: ClockOptions = {}): VirtualClock {
   let t = options.startMs ?? 0;
   const freezeWallClock = options.freezeWallClock ?? true;
   let nextId = 1;
@@ -91,7 +79,7 @@ export function createVirtualClock(
     }
   };
 
-  const clock: ScheduledVirtualClock = {
+  const clock: VirtualClock = {
     now: () => t,
     advance(deltaMs: number): void {
       if (deltaMs < 0) {

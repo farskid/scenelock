@@ -26,6 +26,14 @@ export interface SceneNode {
 /**
  * Host-provided adapter. Library adapters (tldraw, Konva, …) implement this once;
  * apps wire it in a single file.
+ *
+ * Keep this surface minimal: `snapshot` / `locate` / `settled`.
+ *
+ * Kit-level helpers (live in `@scenelock/scene`, not on this interface):
+ * - **worldToScreen** — camera/viewport transform from locate()-space to pointer
+ *   CSS pixels via `resolvePointerTarget` / `TargetingOptions.worldToScreen`.
+ * - **settled options** — timeout, step pump, and diagnostics via `awaitSettled`
+ *   (`AwaitSettledOptions`: `timeoutMs`, `step`, `stepDeltaMs`, `diagnose`).
  */
 export interface SceneAdapter {
   /** Full retained-model snapshot for asserts + agent traces. */
@@ -33,11 +41,14 @@ export interface SceneAdapter {
   /**
    * Resolve an id to a bbox for real pointer events.
    * Returns null when the node is gone / not hittable.
+   * Bboxes are typically screen-space; apply kit `worldToScreen` when the host
+   * reports world coordinates.
    */
   locate(id: string): BBox | null | Promise<BBox | null>;
   /**
    * Wait until the host is settled (queue drained, frame rendered, mirrors quiet).
    * Kills wait-guessing / fixed sleeps.
+   * For timeout + step-pumping, wrap with `@scenelock/scene` `awaitSettled`.
    */
   settled(): Promise<void>;
 }
