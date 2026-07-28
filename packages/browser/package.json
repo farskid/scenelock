@@ -21,7 +21,8 @@
     "test": "vitest run --config ../../vitest.config.ts --dir ."
   },
   "dependencies": {
-    "@scenelock/core": "workspace:*"
+    "@scenelock/core": "workspace:*",
+    "playwright": "^1.49.0"
   },
   "peerDependencies": {
     "playwright": "^1.49.0"

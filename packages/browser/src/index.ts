@@ -1,67 +1,85 @@
-import type {
+/**
+ * @scenelock/browser — Playwright-wrapped browser tier.
+ *
+ * Wraps the `playwright` library (not `@playwright/test` as the product surface).
+ * Locator policy: role → label/text → testId; structural CSS denied by default.
+ * Unit tests inject {@link FakePageDriver}; Chromium loads only via dynamic import.
+ */
+
+export type {
   BrowserEngine,
   BrowserLaunchOptions,
   BrowserSession,
-  ExecutorContext,
-  Locator,
   LocatorBridge,
-  StructuralLocator,
 } from "@scenelock/core";
-import { DEFAULT_LOCATOR_PRIORITY } from "@scenelock/core";
+export { DEFAULT_LOCATOR_PRIORITY } from "@scenelock/core";
 
-/**
- * @scenelock/browser — Playwright-wrapped browser tier.
- * Wraps `playwright` library (not @playwright/test as the product surface).
- * Locator policy: role → label/text → testId; structural CSS denied by default.
- */
+export type {
+  DriverFillOptions,
+  DriverLocator,
+  DriverPoint,
+  DriverTarget,
+  DriverTypeOptions,
+  PageDriver,
+} from "./driver.js";
+export { isDriverPoint } from "./driver.js";
 
-export type { BrowserEngine, BrowserLaunchOptions, BrowserSession, LocatorBridge };
+export {
+  StructuralLocatorDeniedError,
+  assertLocatorAllowed,
+  translateLocator,
+  createLocatorTranslator,
+  type StructuralLocatorLike,
+} from "./locators.js";
 
-export { DEFAULT_LOCATOR_PRIORITY };
+export { AutoWaitTimeoutError, pollUntil, type PollOptions } from "./auto-wait.js";
 
-export class StructuralLocatorDeniedError extends Error {
-  constructor(locator: StructuralLocator) {
-    super(
-      `Structural locators are denied by default (css=${locator.css ?? ""}, xpath=${locator.xpath ?? ""}). Pass allowStructural: true only as an explicit escape.`,
-    );
-    this.name = "StructuralLocatorDeniedError";
-  }
-}
+export {
+  BrowserActionError,
+  buildBrowserFailure,
+  isFailureEnvelopeShape,
+  type BuildFailureOptions,
+} from "./failure.js";
 
-/** Policy gate used by the Playwright locator bridge. */
-export function assertLocatorAllowed(locator: Locator): void {
-  if (locator.kind === "structural" && locator.allowStructural !== true) {
-    throw new StructuralLocatorDeniedError(locator);
-  }
-}
+export {
+  CROSS_ORIGIN_ISOLATION_HEADERS,
+  applyCrossOriginIsolationHeaders,
+  assertCrossOriginIsolated,
+  type CrossOriginIsolationHeaders,
+} from "./headers.js";
 
-/**
- * Scaffold engine — real Playwright launch/session lands in phase 2.
- * Keeping the factory so parallel agents share one entrypoint.
- */
-export function createBrowserEngine(_options?: BrowserLaunchOptions): BrowserEngine {
-  const notReady = (method: string): never => {
-    throw new Error(
-      `@scenelock/browser: ${method} not implemented yet (Playwright wrap pending)`,
-    );
-  };
+export {
+  FakePageDriver,
+  type FakeElement,
+  type FakePageDriverOptions,
+} from "./fake-driver.js";
 
-  const engine: BrowserEngine = {
-    async launch() {
-      return notReady("launch");
-    },
-    async newSession(_ctx: ExecutorContext, _opts?: BrowserLaunchOptions): Promise<BrowserSession> {
-      return notReady("newSession");
-    },
-    async close() {
-      /* no-op until launch exists */
-    },
-  };
-  return engine;
-}
+export {
+  loadPlaywright,
+  launchPlaywrightDriver,
+  wrapPlaywrightPage,
+  type PlaywrightDriverOptions,
+  type PlaywrightDriverHandle,
+} from "./playwright-driver.js";
 
-/** Headers required for SAB / cross-origin isolation (Creator integration tier). */
-export const CROSS_ORIGIN_ISOLATION_HEADERS = {
-  "Cross-Origin-Opener-Policy": "same-origin",
-  "Cross-Origin-Embedder-Policy": "require-corp",
-} as const;
+export {
+  BrowserHarness,
+  type BrowserHarnessOptions,
+} from "./harness.js";
+
+export {
+  DriverBrowserSession,
+  createBrowserSession,
+  type BrowserSessionOptions,
+} from "./session.js";
+
+export {
+  createBrowserEngine,
+  type CreateBrowserEngineOptions,
+} from "./engine.js";
+
+export {
+  createPageSceneAdapter,
+  DEFAULT_PAGE_SCENE_GLOBAL,
+  type PageSceneBridgeOptions,
+} from "./scene-bridge.js";

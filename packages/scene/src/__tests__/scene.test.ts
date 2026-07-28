@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { createSceneQuery, defineSceneAdapter, matchSceneNode } from "../index.js";
 import type { SceneNode } from "@scenelock/core";
+import {
+  createSceneQuery,
+  defineSceneAdapter,
+  matchSceneNode,
+} from "../index.js";
 
 const nodes: SceneNode[] = [
   { id: "a", role: "shape", name: "Rect", bbox: { x: 0, y: 0, width: 10, height: 10 } },
   { id: "b", role: "shape", name: "Circle", bbox: { x: 20, y: 0, width: 10, height: 10 } },
 ];
 
-describe("@scenelock/scene", () => {
+describe("@scenelock/scene smoke", () => {
   it("queries retained-model snapshots by role/name", () => {
     const q = createSceneQuery(nodes);
     expect(q.find({ role: "shape" })).toHaveLength(2);

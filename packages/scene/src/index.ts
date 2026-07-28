@@ -1,65 +1,58 @@
-import type {
+/**
+ * `@scenelock/scene` — scene contract kit over {@link SceneAdapter} from `@scenelock/core`.
+ *
+ * Owns: SceneQuery engine, pointer targeting, settledness waits, fake/reference adapter,
+ * and the adapter conformance vitest suite.
+ *
+ * Library adapters (tldraw, Konva, Excalidraw, …) ship later as `@scenelock/adapter-*`
+ * packages that implement `SceneAdapter` and run {@link createAdapterConformanceTests}.
+ * Apps wire a one-file adapter via {@link defineSceneAdapter}.
+ */
+
+export type {
   BBox,
+  RasterSurface,
   SceneAdapter,
   SceneNode,
   ScenePredicate,
   SceneQuery,
 } from "@scenelock/core";
 
-/**
- * @scenelock/scene — adapter kit over the SceneAdapter contract from @scenelock/core.
- * Library adapters (tldraw, Konva, …) live as separate packages later; this package
- * owns query helpers + adapter validation.
- */
+export { bboxCenter, bboxContains } from "@scenelock/core";
 
-export type { SceneAdapter, SceneNode, ScenePredicate, SceneQuery, BBox };
+export {
+  SceneQueryError,
+  SceneTargetError,
+  SceneSettledTimeoutError,
+  formatCandidates,
+} from "./errors.js";
 
-export function matchSceneNode(node: SceneNode, predicate: ScenePredicate): boolean {
-  if (typeof predicate === "function") return predicate(node);
-  if ("id" in predicate) return node.id === predicate.id;
-  if (node.role !== predicate.role) return false;
-  if (predicate.name === undefined) return true;
-  if (typeof predicate.name === "string") return node.name === predicate.name;
-  return predicate.name.test(node.name);
-}
+export { matchSceneNode, matchName } from "./match.js";
 
-export function createSceneQuery(nodes: readonly SceneNode[]): SceneQuery {
-  return {
-    find(predicate) {
-      return nodes.filter((n) => matchSceneNode(n, predicate));
-    },
-    findOne(predicate) {
-      const hits = nodes.filter((n) => matchSceneNode(n, predicate));
-      if (hits.length !== 1) {
-        throw new Error(
-          `SceneQuery.findOne: expected 1 match, got ${hits.length} for ${String(predicate)}`,
-        );
-      }
-      return hits[0]!;
-    },
-  };
-}
+export type { GetByRoleOptions, SceneQueryEngine } from "./query.js";
+export { createSceneQuery, queryAdapter } from "./query.js";
 
-/** Runtime guard for host adapters — ensures the three required methods exist. */
-export function assertSceneAdapter(value: unknown): asserts value is SceneAdapter {
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    typeof (value as SceneAdapter).snapshot !== "function" ||
-    typeof (value as SceneAdapter).locate !== "function" ||
-    typeof (value as SceneAdapter).settled !== "function"
-  ) {
-    throw new Error(
-      "Invalid SceneAdapter: expected { snapshot(), locate(id), settled() }",
-    );
-  }
-}
+export type { PointerPoint, WorldToScreen, TargetingOptions } from "./targeting.js";
+export {
+  isDegenerateBBox,
+  resolvePointerTarget,
+  transformBBox,
+} from "./targeting.js";
 
-/**
- * Wrap a retained-model getter into a SceneAdapter.
- * `settled` defaults to a resolved promise (hosts should override).
- */
-export function defineSceneAdapter(impl: SceneAdapter): SceneAdapter {
-  assertSceneAdapter(impl);
-  return impl;
-}
+export type { SettledStepCallback, AwaitSettledOptions } from "./settled.js";
+export { awaitSettled } from "./settled.js";
+
+export { assertSceneAdapter, defineSceneAdapter } from "./adapter.js";
+
+export type {
+  FakeSceneModel,
+  CreateFakeAdapterOptions,
+  FakeSceneAdapter,
+} from "./fake-adapter.js";
+export { createFakeAdapter } from "./fake-adapter.js";
+
+export type { AdapterFactory, AdapterConformanceOptions } from "./conformance.js";
+export { createAdapterConformanceTests } from "./conformance.js";
+
+export type { RasterFrame } from "./raster.js";
+export { renderRasterSurface, defineRasterSurface } from "./raster.js";

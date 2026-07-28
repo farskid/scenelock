@@ -3,85 +3,80 @@ import type {
   GoldenCompareOptions,
   GoldenDiff,
   GoldenStore,
+  GoldenVerdict,
   RasterFrame,
 } from "@scenelock/core";
 
 /**
- * @scenelock/golden — bit-exact RGBA comparison.
+ * @scenelock/golden — bit-exact RGBA golden comparison.
  *
  * ## Pinned rasterizer assumptions
- * - Prefer a **software** rasterizer (e.g. ThorVG SW, Cairo, or host `render()→RGBA`).
- * - Do **not** claim cross-machine bit-exact goldens from GPU/compositor paths.
- * - Font/text determinism is **not** promised until the host pins fonts + hinting
- *   (open item on the project map). Shape/geometry goldens without text are OK.
- * - Engine-tier goldens run in Node+WASM; browser blit/compositing is a separate claim.
- * - Tolerance-based / perceptual diffs are out of scope.
+ * Frames must come from a **pinned software rasterizer**. Pass an explicit
+ * `rasterizerFingerprint` string; it is stored inside each `.golden` file.
+ * Fingerprint mismatch is **environment drift**, not a visual regression.
+ *
+ * - Prefer software raster (ThorVG SW, Cairo, host `render()→RGBA`).
+ * - Do **not** claim cross-machine bit-exact from GPU/compositor paths.
+ * - Font/text determinism requires host-pinned fonts + hinting.
+ * - Tolerance / perceptual diffs are out of scope (determinism makes them unnecessary).
+ * - Thin opt-in tier (research 02): a11y/scene asserts are primary UI truth.
+ *
+ * ## Format
+ * Self-contained `.golden` binary: header + optional zlib payload + SHA-256
+ * content hash. No pngjs/sharp — Node `zlib` + `crypto` only.
  */
 
-export type { GoldenCompare, GoldenCompareOptions, GoldenDiff, GoldenStore, RasterFrame };
+export type {
+  GoldenCompare,
+  GoldenCompareOptions,
+  GoldenDiff,
+  GoldenStore,
+  GoldenVerdict,
+  RasterFrame,
+};
 
-export const RASTERIZER_ASSUMPTIONS = {
-  softwareOnly: true,
-  crossMachineBitExact: "engine-tier-only-when-fonts-pinned",
-  tolerance: "none",
-  browserCompositor: "not-a-golden-source",
-} as const;
+export {
+  RASTERIZER_ASSUMPTIONS,
+  FINGERPRINT_DRIFT_CODE,
+} from "./assumptions.js";
 
-export function framesEqual(a: RasterFrame, b: RasterFrame): GoldenDiff {
-  if (a.width !== b.width || a.height !== b.height) {
-    return {
-      verdict: "dimension-mismatch",
-      expected: { width: b.width, height: b.height },
-      actual: { width: a.width, height: a.height },
-    };
-  }
-  const n = a.pixels.length;
-  if (n !== b.pixels.length) {
-    return { verdict: "mismatch", diffByteCount: Math.abs(n - b.pixels.length) };
-  }
-  let first = -1;
-  let count = 0;
-  for (let i = 0; i < n; i++) {
-    if (a.pixels[i] !== b.pixels[i]) {
-      if (first < 0) first = i;
-      count++;
-    }
-  }
-  if (count === 0) return { verdict: "match" };
-  return {
-    verdict: "mismatch",
-    firstDiffByte: first,
-    diffByteCount: count,
-    expected: { width: b.width, height: b.height },
-    actual: { width: a.width, height: a.height },
-  };
-}
+export { hashFrame, hashPixels, assertFrameShape } from "./hash.js";
 
-export function createMemoryGoldenStore(initial: Record<string, RasterFrame> = {}): GoldenStore {
-  const map = new Map(Object.entries(initial));
-  return {
-    async read(name) {
-      return map.get(name) ?? null;
-    },
-    async write(name, frame) {
-      map.set(name, frame);
-    },
-  };
-}
+export {
+  GOLDEN_MAGIC,
+  GOLDEN_FORMAT_VERSION,
+  GOLDEN_FLAG_DEFLATE,
+  GOLDEN_FILE_EXT,
+  serializeGolden,
+  deserializeGolden,
+  writeGoldenFile,
+  readGoldenFile,
+  type GoldenFile,
+  type SerializeGoldenOptions,
+} from "./format.js";
 
-export function createGoldenCompare(store: GoldenStore): GoldenCompare {
-  return {
-    async compare(name, actual, options: GoldenCompareOptions = {}): Promise<GoldenDiff> {
-      const key = options.suite ? `${options.suite}/${name}` : name;
-      const expected = await store.read(key);
-      if (!expected) {
-        if (options.update) {
-          await store.write(key, actual);
-          return { verdict: "missing-baseline" };
-        }
-        return { verdict: "missing-baseline" };
-      }
-      return framesEqual(actual, expected);
-    },
-  };
-}
+export {
+  compareFrames,
+  framesEqual,
+  toGoldenDiff,
+  type Rgba,
+  type PixelDiffSample,
+  type DiffBoundingBox,
+  type DiffReport,
+  type CompareFramesOptions,
+  type FrameCompareResult,
+} from "./compare.js";
+
+export {
+  DirectoryGoldenStore,
+  createMemoryGoldenStore,
+  createGoldenCompare,
+  sanitizeTestId,
+  isFingerprintDrift,
+  fingerprintDriftMessage,
+  type DirectoryGoldenStoreOptions,
+  type GoldenRunResult,
+  type GoldenRunVerdict,
+} from "./store.js";
+
+export { toFailureEnvelope, type GoldenFailureContext } from "./failure.js";
