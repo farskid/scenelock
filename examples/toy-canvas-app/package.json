@@ -1,0 +1,26 @@
+{
+  "name": "@scenelock/toy-canvas-app",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Minimal retained-model canvas app — in-repo test host for Scenelock",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@scenelock/core": "workspace:*",
+    "@scenelock/scene": "workspace:*",
+    "@scenelock/executor": "workspace:*"
+  },
+  "license": "MIT",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts"
+}
