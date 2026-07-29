@@ -98,6 +98,21 @@ importers:
         specifier: workspace:*
         version: link:../scene
 
+  packages/recorder:
+    dependencies:
+      '@scenelock/browser':
+        specifier: workspace:*
+        version: link:../browser
+      '@scenelock/core':
+        specifier: workspace:*
+        version: link:../core
+      '@scenelock/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@scenelock/scene':
+        specifier: workspace:*
+        version: link:../scene
+
   packages/scene:
     dependencies:
       '@scenelock/core':

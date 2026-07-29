@@ -10,9 +10,9 @@ Flake becomes a seed you can replay. Canvas apps stop being second-class. “Wha
 
 ## Status
 
-**Harness DSL + tiering** — `@scenelock/harness` unifies scene / browser / golden / smoke behind `createHarness`. Wave-2 toy-host proofs remain green.
+**Harness DSL + recorder** — `@scenelock/harness` unifies scene / browser / golden / smoke behind `createHarness`. `@scenelock/recorder` emits harness DSL files + machine JSON (non-interactive; a11y/scene locators, never Inspector-copy).
 
-Still ahead: recorder, CLI, real host spikes (Creator / tldraw).
+Still ahead: CLI, real host spikes (Creator / tldraw).
 
 ---
 
@@ -128,6 +128,26 @@ See `examples/toy-canvas-app` for a retained-model host with software raster + s
 | `@scenelock/discovery` | Statechart walks + invariants |
 | `@scenelock/golden` | Bit-exact golden comparison |
 | `@scenelock/harness` | Unified `createHarness` DSL + tiering |
+| `@scenelock/recorder` | Non-interactive record → harness DSL + machine log |
+
+### Recorder (agent-friendly)
+
+```ts
+import { createRecorder, emitTest, emitLog } from "@scenelock/recorder";
+import { createFakeAdapter } from "@scenelock/scene";
+
+const adapter = createFakeAdapter([/* … */]);
+const rec = createRecorder({ adapter, tier: "scene", seed: "demo" });
+await rec.feed({ type: "pointerdown", x: 10, y: 10, timestamp: 0, surface: "canvas" });
+await rec.feed({ type: "pointerup", x: 10, y: 10, timestamp: 16, surface: "canvas" });
+rec.checkpoint("after-click");
+await rec.flush();
+
+const { source, filename } = emitTest(rec.session()); // e.g. recorded.test.ts
+const log = emitLog(rec.session());                   // machine JSON
+```
+
+Locator ladder at record time: DOM `role+name` → label/text → testId; canvas → `scene.getByRole` / `getBySceneId` via adapter `hitTest` or bbox; raw `canvas.at(x,y)` only as a flagged fallback.
 
 Contracts and the work plan: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md).
 

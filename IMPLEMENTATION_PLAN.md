@@ -41,8 +41,11 @@ Wave 1 ran under a core freeze. **Wave 2 lifted the freeze** for the integrator:
      └────────────┼─────────────┘
                   ▼
          @scenelock/harness              ← unified DSL + tiering
-                  ▼
-         examples/toy-canvas-app
+                  │
+                  ├──────────────┐
+                  ▼              ▼
+         @scenelock/recorder   examples/toy-canvas-app
+         (record → DSL files)
 ```
 
 ---
@@ -123,12 +126,19 @@ Commit `31605f2`. All packages implemented against frozen core; 118 tests green.
 
 ---
 
+## Wave 4 — Recorder / codegen (done)
+
+- [x] `@scenelock/recorder`: action log model (`RecordingSession` / `RecordedAction`)
+- [x] Pure `createRecorder` — pluggable event source; DOM ladder + scene hit-test; coalescing
+- [x] `PageDriver` event source (FakePageDriver-compatible; Playwright via evaluate seam)
+- [x] `emitTest` → `createHarness` DSL file; `emitLog` → machine JSON; checkpoint stubs
+- [x] Unit + codegen typecheck tests
+
 ## Remains
 
 | Item | Notes |
 | --- | --- |
-| **Recorder** | Emit a11y-primary locators + scene ids; no structural by default |
-| **CLI** | Seed flags, `--update` goldens, failure-envelope reporter, walk replay, tier budget gate |
+| **CLI** | Seed flags, `--update` goldens, failure-envelope reporter, walk replay, tier budget gate, recorder `-o` |
 | **Real host spikes** | Creator / tldraw (or similar) adapter + scene-tier suite |
 | Optional | GitHub Actions matrix; browser-tier nightly; library `@scenelock/adapter-*` packages |
 
@@ -146,6 +156,7 @@ Commit `31605f2`. All packages implemented against frozen core; 118 tests green.
 | `BrowserEngine`, `BrowserSession` | `core` | `browser` |
 | `StateModel`, walks, invariants | `core` | `discovery` |
 | `GoldenCompare`, `RasterFrame`, `GoldenDiff` | `core` | `golden` |
+| Recording session + harness codegen | `recorder` | `recorder` (consumes harness / scene / browser) |
 
 ---
 

@@ -11,6 +11,7 @@ export default defineConfig({
       "@scenelock/discovery": path.resolve(__dirname, "packages/discovery/src/index.ts"),
       "@scenelock/golden": path.resolve(__dirname, "packages/golden/src/index.ts"),
       "@scenelock/harness": path.resolve(__dirname, "packages/harness/src/index.ts"),
+      "@scenelock/recorder": path.resolve(__dirname, "packages/recorder/src/index.ts"),
     },
   },
   test: {
