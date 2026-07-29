@@ -108,7 +108,7 @@ async function runBody<T>(
 export function createExecutor(options: ExecutorOptions = {}): DeterministicExecutor {
   const seeds = options.seeds ?? defaultSeedManager;
   const seed = seeds.create(options.seed);
-  const tier = options.tier ?? "engine";
+  const tier = options.tier ?? "scene";
   const clock = createVirtualClock(options.clock);
   const random = seeds.random(seed);
 

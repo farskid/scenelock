@@ -2,7 +2,7 @@ import type { Locator } from "./locators.js";
 
 /**
  * Agent failure envelope (research 04).
- * One schema across Node+WASM scene tier and Playwright browser tier.
+ * One schema across scene / browser / golden / smoke tiers.
  * Artifacts are pointers, never blobs. Seed is the replay token.
  */
 
@@ -61,14 +61,17 @@ export interface FailureEnvelope {
 }
 
 export type ExecutionTier =
-  /** Node + WASM / engine scene tests — no browser. */
-  | "engine"
-  /** Full integration in real Chromium via Playwright. */
+  /** Node (+ WASM) scene tests — adapter + executor only; no DOM `ui`. */
+  | "scene"
+  /** Full hybrid integration in Chromium via Playwright (DOM + canvas). */
   | "browser"
-  /** Optional main-thread CDP virtual-time accelerator (not Creator default). */
-  | "virtual-time"
   /** Bit-exact golden / visual claim under a pinned software rasterizer. */
-  | "golden";
+  | "golden"
+  /**
+   * Real-browser smoke — browser surface minus the determinism pack (real clock).
+   * Quarantined from the PR gate by default; release-gate only.
+   */
+  | "smoke";
 
 /** Minimal JSON Schema draft-07 for FailureEnvelope (agent parsers). */
 export const FAILURE_ENVELOPE_JSON_SCHEMA = {
@@ -112,7 +115,7 @@ export const FAILURE_ENVELOPE_JSON_SCHEMA = {
     locator: { type: "object" },
     step: { type: "string" },
     seed: { type: "string" },
-    tier: { type: "string", enum: ["engine", "browser", "virtual-time", "golden"] },
+    tier: { type: "string", enum: ["scene", "browser", "golden", "smoke"] },
     artifacts: {
       type: "object",
       properties: {

@@ -44,6 +44,9 @@ importers:
       '@scenelock/golden':
         specifier: workspace:*
         version: link:../../packages/golden
+      '@scenelock/harness':
+        specifier: workspace:*
+        version: link:../../packages/harness
       '@scenelock/scene':
         specifier: workspace:*
         version: link:../../packages/scene
@@ -76,6 +79,24 @@ importers:
       '@scenelock/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/harness:
+    dependencies:
+      '@scenelock/browser':
+        specifier: workspace:*
+        version: link:../browser
+      '@scenelock/core':
+        specifier: workspace:*
+        version: link:../core
+      '@scenelock/executor':
+        specifier: workspace:*
+        version: link:../executor
+      '@scenelock/golden':
+        specifier: workspace:*
+        version: link:../golden
+      '@scenelock/scene':
+        specifier: workspace:*
+        version: link:../scene
 
   packages/scene:
     dependencies:

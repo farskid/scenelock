@@ -1,6 +1,6 @@
 # Scenelock
 
-![status](https://img.shields.io/badge/status-wave%202-green)
+![status](https://img.shields.io/badge/status-harness-green)
 
 **Deterministic UI testing for TypeScript/JavaScript apps — canvas-first.**
 
@@ -10,9 +10,9 @@ Flake becomes a seed you can replay. Canvas apps stop being second-class. “Wha
 
 ## Status
 
-**Wave 2** — core v2 contracts ratified; end-to-end proof on the toy canvas host (`examples/toy-canvas-app`): scene flow, bit-exact goldens, discovery walks, seed replay.
+**Harness DSL + tiering** — `@scenelock/harness` unifies scene / browser / golden / smoke behind `createHarness`. Wave-2 toy-host proofs remain green.
 
-Still ahead: real host spikes (Creator / tldraw), recorder, CLI.
+Still ahead: recorder, CLI, real host spikes (Creator / tldraw).
 
 ---
 
@@ -35,53 +35,63 @@ The browser tier wraps **Playwright** (library, not a re-export of `@playwright/
 ## Quickstart (toy host)
 
 ```ts
-import { createExecutor, createStepLoopDriver } from "@scenelock/executor";
-import { awaitSettled, createSceneQuery } from "@scenelock/scene";
+import { createHarness } from "@scenelock/harness";
 import { DirectoryGoldenStore } from "@scenelock/golden";
 import {
   ToyCanvasApp,
   TOY_RASTER_FINGERPRINT,
   createToySceneAdapter,
   createToyStepLoop,
+  createToyPointerSink,
 } from "@scenelock/toy-canvas-app";
 
 const app = new ToyCanvasApp();
 app.add("rect", { name: "Box", x: 8, y: 8, width: 20, height: 16 });
 
-const adapter = createToySceneAdapter(app);
-const stepLoop = createToyStepLoop(app);
-const ex = createExecutor({ seed: "demo", stepLoop });
-
-await ex.run(async (ctx) => {
-  const q = createSceneQuery(await adapter.snapshot());
-  const box = q.getByRole("rect", { name: "Box" });
-  app.tweenTo(box.id, 20, 20, 48);
-  await awaitSettled(adapter, {
-    step: (dt) => ctx.stepLoop!.step(dt),
-    stepDeltaMs: 16,
-  });
+const t = await createHarness({
+  tier: "scene",
+  adapter: createToySceneAdapter(app),
+  seed: "demo",
+  stepLoop: createToyStepLoop(app),
+  pointer: createToyPointerSink(app),
 });
 
+const box = t.scene.getByRole("rect", { name: "Box" });
+await t.user.click(box);
+app.tweenTo(box.id, 20, 20, 48);
+await t.settled();
+await t.expect(box).toMatchScene({ role: "rect", name: "Box" });
+await t.dispose();
+
+// Golden tier — same shape; t.golden.compare is live
 const store = new DirectoryGoldenStore({
   directory: "./goldens",
   rasterizerFingerprint: TOY_RASTER_FINGERPRINT, // "toy-raster-v1"
 });
-const result = await store.compare("toy-scene", app.render());
-// result.verdict === "match" against committed goldens
+const g = await createHarness({
+  tier: "golden",
+  adapter: createToySceneAdapter(app),
+  goldenStore: store,
+  seed: "demo-golden",
+});
+await g.golden.compare("toy-scene", app.render());
+await g.dispose();
 ```
 
-Integration proofs live in `examples/toy-canvas-app/src/__tests__/integration.test.ts` (flow, golden, discovery, seed replay).
+Integration proofs: `examples/toy-canvas-app/src/__tests__/` (`harness.test.ts`, `harness.golden.test.ts`, `integration.test.ts`).
 
 ---
 
 ## Tier model
 
-| Tier | Where | For |
+| Tier | Filename | For |
 | --- | --- | --- |
-| **Engine** | Node (+ WASM hosts) | Fast scene tests, invariants — no browser |
-| **Golden** | Pinned software raster | Bit-exact RGBA goldens (`tier: "golden"`) |
-| **Browser** | Chromium via Playwright | Full integration; DOM + canvas; COOP/COEP when SAB is required |
-| **Virtual time** | Optional CDP accelerator | Main-thread hosts only — not the default for worker/OffscreenCanvas apps |
+| **scene** | `*.test.ts` (default) | Adapter + executor — cheapest honest path; no DOM `ui` |
+| **browser** | `*.browser.test.ts` | Chromium via Playwright; DOM + canvas; determinism pack |
+| **golden** | `*.golden.test.ts` | Scene + bit-exact RGBA goldens |
+| **smoke** | `*.smoke.test.ts` | Browser minus determinism (real clock); quarantined from PR gate |
+
+Accessing a dead subsurface throws `TierPromotionError` naming the required tier + filename suffix. Optional `TierBudget` fails CI when browser+smoke ratios exceed config.
 
 ---
 
@@ -117,6 +127,7 @@ See `examples/toy-canvas-app` for a retained-model host with software raster + s
 | `@scenelock/browser` | Playwright-wrapped browser tier |
 | `@scenelock/discovery` | Statechart walks + invariants |
 | `@scenelock/golden` | Bit-exact golden comparison |
+| `@scenelock/harness` | Unified `createHarness` DSL + tiering |
 
 Contracts and the work plan: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md).
 

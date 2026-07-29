@@ -10,7 +10,7 @@ Wave 1 ran under a core freeze. **Wave 2 lifted the freeze** for the integrator:
 
 | Path | Wave-1 status | Wave-2 status |
 | --- | --- | --- |
-| `packages/core/**` | FROZEN | **Open** (v2 landed) |
+| `packages/core/**` | FROZEN | **Open** (v2 landed; tiers renamed to scene/browser/golden/smoke) |
 | Root configs | FROZEN | Amend carefully |
 | `IMPLEMENTATION_PLAN.md`, `README.md` | Docs PRs | Updated this wave |
 | Package sources | Per-agent ownership | Shared for integration |
@@ -40,19 +40,23 @@ Wave 1 ran under a core freeze. **Wave 2 lifted the freeze** for the integrator:
      │            │             │
      └────────────┼─────────────┘
                   ▼
-         examples/toy-canvas-app          ← e2e proof (wave 2)
+         @scenelock/harness              ← unified DSL + tiering
+                  ▼
+         examples/toy-canvas-app
 ```
 
 ---
 
-## Tier model (do not reinvent)
+## Tier model (ratified — tickets 06/07)
 
-| Tier | Runtime | Determinism source | Claims |
+| Tier | Runtime | Determinism | Claims |
 | --- | --- | --- | --- |
-| **engine** | Node (+ WASM hosts later) | Seed + virtual clock + `StepLoopDriver` | Scene asserts, invariants |
-| **golden** | Pinned software raster | Bit-exact RGBA + fingerprint | Visual claim (`tier: "golden"`) |
-| **browser** | Chromium via Playwright | Host step hook + `settled`, not CDP VT | Full integration (DOM chrome + canvas), COOP/COEP for SAB |
-| **virtual-time** | Optional CDP VT | Main-thread hosts only | Accelerator — **not** Creator default |
+| **scene** | Node (+ WASM hosts later) | Seed + virtual clock + `StepLoopDriver` | Scene asserts, invariants — `*.test.ts` default |
+| **browser** | Chromium via Playwright | Host step hook + `settled` + determinism pack | Full integration (DOM chrome + canvas) |
+| **golden** | Pinned software raster | Scene + bit-exact RGBA | Visual claim (`tier: "golden"`) |
+| **smoke** | Real Chromium | Real clock (no determinism pack); quarantined | Release-gate user truth — not PR default |
+
+Heavy-path guard: `TierBudget` + `TierPromotionError` (no silent escalation).
 
 ---
 
@@ -103,20 +107,29 @@ Commit `31605f2`. All packages implemented against frozen core; 118 tests green.
 
 ## Wave 2 — Core v2 + e2e proof (done)
 
-- [x] Core v2: fold wave-1 friction into contracts (`ExecutionTier.golden`, pixel `GoldenDiff`, timer `VirtualClock`, `stepN`/`stepUntil`, `runWithSeed` + failure-envelope hook, path/random coverage, `DiscoveryViolation` / `WalkExecutor`, `DeclarativeStateModel`, loosened `InvariantContext`, `extraHTTPHeaders`, SceneAdapter kit JSDoc)
-- [x] Toy canvas host rebuilt: rect/ellipse, add/move/select/delete/undo/redo, software raster, tween `step(dt)`
-- [x] Integration tests: flow, golden (committed `toy-raster-v1`), discovery + undo/redo identity, seed replay
-- [x] Docs: README status + quickstart; this plan marked done
+- [x] Core v2: fold wave-1 friction into contracts
+- [x] Toy canvas host rebuilt
+- [x] Integration tests: flow, golden, discovery + undo/redo identity, seed replay
 
 ---
 
-## Remains (post wave 2)
+## Wave 3 — Unified harness + tiering (done)
+
+- [x] `ExecutionTier` = `scene` \| `browser` \| `golden` \| `smoke`
+- [x] `@scenelock/harness`: `createHarness` DSL (`ui` / `scene` / `user` / `clock` / `rng` / `step` / `settled` / `expect` / `golden`)
+- [x] Filename convention + `tierFromFilename` + vitest helpers
+- [x] `TierPromotionError` + `TierBudget` reporter
+- [x] Toy e2e via harness (scene + golden)
+
+---
+
+## Remains
 
 | Item | Notes |
 | --- | --- |
-| **Real host spikes** | Creator / tldraw (or similar) adapter + engine-tier suite |
 | **Recorder** | Emit a11y-primary locators + scene ids; no structural by default |
-| **CLI** | Seed flags, `--update` goldens, failure-envelope reporter, walk replay |
+| **CLI** | Seed flags, `--update` goldens, failure-envelope reporter, walk replay, tier budget gate |
+| **Real host spikes** | Creator / tldraw (or similar) adapter + scene-tier suite |
 | Optional | GitHub Actions matrix; browser-tier nightly; library `@scenelock/adapter-*` packages |
 
 ---
@@ -125,12 +138,13 @@ Commit `31605f2`. All packages implemented against frozen core; 118 tests green.
 
 | Concept | Defined in | Implemented in |
 | --- | --- | --- |
-| `FailureEnvelope`, locators, DSL, seeds | `core` | reporters / all tiers |
+| `FailureEnvelope`, locators, seeds, tiers | `core` | reporters / all tiers |
 | `DeterministicExecutor`, `StepLoopDriver`, `VirtualClock` | `core` | `executor` |
 | `SceneAdapter`, `SceneNode`, `RasterSurface` | `core` | host apps + `scene` kit |
-| `Harness`, `Expectation` | `core` | `browser` (+ future engine harness) |
+| Unified `createHarness` DSL | `harness` | `harness` (composes executor/scene/browser/golden) |
+| Core `Harness` (browser session) | `core` | `browser` |
 | `BrowserEngine`, `BrowserSession` | `core` | `browser` |
-| `StateModel`, `DeclarativeStateModel`, `Walk`, `Invariant`, `WalkExecutor`, `DiscoveryRunner` | `core` | `discovery` |
+| `StateModel`, walks, invariants | `core` | `discovery` |
 | `GoldenCompare`, `RasterFrame`, `GoldenDiff` | `core` | `golden` |
 
 ---

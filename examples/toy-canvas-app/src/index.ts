@@ -13,6 +13,7 @@ export {
   createToyStepLoopBare,
   createToyRasterSurface,
 } from "./adapter.js";
+export { createToyPointerSink } from "./pointer.js";
 export {
   TOY_EDITOR_MODEL,
   toyEditorStateModel,

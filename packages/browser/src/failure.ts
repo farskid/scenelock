@@ -96,7 +96,14 @@ export function isFailureEnvelopeShape(value: unknown): value is FailureEnvelope
   }
   if (typeof v["error"] !== "object" || v["error"] === null) return false;
   if (typeof (v["error"] as FailureError).message !== "string") return false;
-  if (v["tier"] !== "browser" && v["tier"] !== "engine" && v["tier"] !== "virtual-time") return false;
+  if (
+    v["tier"] !== "browser" &&
+    v["tier"] !== "scene" &&
+    v["tier"] !== "golden" &&
+    v["tier"] !== "smoke"
+  ) {
+    return false;
+  }
   if (typeof v["artifacts"] !== "object" || v["artifacts"] === null) return false;
   return true;
 }

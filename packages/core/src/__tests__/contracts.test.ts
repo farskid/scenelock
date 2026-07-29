@@ -18,7 +18,12 @@ describe("@scenelock/core contracts", () => {
   it("defines a failure envelope schema with seed + tier including golden", () => {
     expect(FAILURE_ENVELOPE_JSON_SCHEMA.required).toContain("seed");
     expect(FAILURE_ENVELOPE_JSON_SCHEMA.required).toContain("tier");
-    expect(FAILURE_ENVELOPE_JSON_SCHEMA.properties.tier.enum).toContain("golden");
+    expect(FAILURE_ENVELOPE_JSON_SCHEMA.properties.tier.enum).toEqual([
+      "scene",
+      "browser",
+      "golden",
+      "smoke",
+    ]);
     const sample: FailureEnvelope = {
       testId: "demo::settled",
       file: "demo.test.ts",
@@ -28,7 +33,7 @@ describe("@scenelock/core contracts", () => {
       retryIndex: 0,
       error: { message: "boom" },
       seed: "abc123",
-      tier: "engine",
+      tier: "scene",
       artifacts: { actualGolden: "/tmp/a.golden", expectedGolden: "/tmp/e.golden" },
       reportedAt: new Date(0).toISOString(),
     };

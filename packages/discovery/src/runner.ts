@@ -142,7 +142,7 @@ function stubExecutorContext(seed: Seed): ExecutorContext {
         return out;
       },
     },
-    tier: "engine",
+    tier: "scene",
     async tick() {
       throw new Error("@scenelock/discovery: stub ExecutorContext has no stepLoop");
     },

@@ -76,7 +76,7 @@ describe("@scenelock/executor", () => {
   });
 
   it("failure envelope carries seed + tier", async () => {
-    const ex = createExecutor({ seed: "boom-seed", tier: "engine" });
+    const ex = createExecutor({ seed: "boom-seed", tier: "scene" });
     try {
       await ex.run(async () => {
         throw new Error("invariant broken");
@@ -86,7 +86,7 @@ describe("@scenelock/executor", () => {
       expect(e).toBeInstanceOf(ExecutorFailure);
       const fail = e as ExecutorFailure;
       expect(fail.envelope.seed).toBe("boom-seed");
-      expect(fail.envelope.tier).toBe("engine");
+      expect(fail.envelope.tier).toBe("scene");
       expect(fail.envelope.status).toBe("failed");
       expect(fail.envelope.error.message).toBe("invariant broken");
       expect(fail.envelope.artifacts).toEqual({});
@@ -150,6 +150,6 @@ describe("@scenelock/executor", () => {
   it("executorFactory.create matches createExecutor", async () => {
     const ex = executorFactory.create({ seed: "factory" });
     expect(ex.seed.value).toBe("factory");
-    expect(ex.tier).toBe("engine");
+    expect(ex.tier).toBe("scene");
   });
 });

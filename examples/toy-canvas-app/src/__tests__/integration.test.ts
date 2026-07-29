@@ -221,7 +221,7 @@ describe("integration: seed replay", () => {
           throw new Error(`forced fail a=${a} b=${b}`);
         },
         {
-          tier: "engine",
+          tier: "scene",
           onFailureEnvelope: (env) => {
             envelopes.push(env.seed);
             capturedSeed = env.seed;
