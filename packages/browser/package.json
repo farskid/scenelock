@@ -15,7 +15,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --config ../../vitest.config.ts --dir ."
+    "test": "vitest run --config ../../vitest.config.ts --dir .",
+    "test:real": "SCENELOCK_REAL_BROWSER=1 vitest run --config ../../vitest.config.ts ../../packages/browser/src/__tests__/real-chromium.integration.test.ts ../../packages/recorder/src/__tests__/real-chromium.integration.test.ts"
   },
   "dependencies": {
     "@scenelock/core": "workspace:*"
@@ -27,6 +28,9 @@
     "playwright": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "playwright": "^1.62.0"
   },
   "license": "MIT"
 }

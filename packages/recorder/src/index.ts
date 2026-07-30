@@ -70,3 +70,10 @@ export {
   type PageRecorderEvent,
   type PageDriverEventSourceOptions,
 } from "./browser-source.js";
+
+export {
+  createPlaywrightRecorderEventSource,
+  createPlaywrightDomResolver,
+  type PlaywrightRecorderPage,
+  type PlaywrightRecorderEventSourceOptions,
+} from "./playwright-source.js";

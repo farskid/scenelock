@@ -90,8 +90,14 @@ export interface PlaywrightDriverHandle {
  */
 export async function loadPlaywright(): Promise<PlaywrightModule> {
   try {
-    const importer = new Function("s", "return import(s)") as (s: string) => Promise<unknown>;
-    return (await importer("playwright")) as PlaywrightModule;
+    // Native dynamic import works under Vitest/Node. The Function fallback
+    // avoids some bundlers rewriting `import()`; Vitest's VM rejects it.
+    try {
+      return (await import("playwright")) as PlaywrightModule;
+    } catch {
+      const importer = new Function("s", "return import(s)") as (s: string) => Promise<unknown>;
+      return (await importer("playwright")) as PlaywrightModule;
+    }
   } catch (cause) {
     throw new Error(
       "@scenelock/browser: playwright is not installed. Add it as a dependency " +

@@ -140,7 +140,7 @@ export function createPageDriverEventSource(
       onEvent = handler;
 
       // Stash the push callback on the host realm (FakePageDriver evaluate shares Node
-      // globalThis; Playwright pages need exposeBinding — CLI wave will wire that).
+      // globalThis). Real Chromium uses createPlaywrightRecorderEventSource (exposeBinding).
       const g = globalThis as typeof globalThis & {
         [RECORDER_BINDING]?: (e: PageRecorderEvent) => void;
       };
