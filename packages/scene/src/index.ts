@@ -14,6 +14,7 @@ export type {
   RasterSurface,
   SceneAdapter,
   SceneNode,
+  SceneNodeId,
   ScenePredicate,
   SceneQuery,
 } from "@scenelock/core";

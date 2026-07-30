@@ -77,7 +77,7 @@ export type RecordedAction =
 export interface RecordingSessionMetadata {
   readonly tier: ExecutionTier;
   readonly seed?: string;
-  /** Host adapter `contractVersion` when provided. */
+  /** Host adapter `contractVersion` (always set when an adapter was bound). */
   readonly adapterContractVersion?: string;
   readonly title?: string;
   /** ISO timestamp of session finalization (wall clock; optional). */
@@ -91,21 +91,11 @@ export interface RecordingSession {
   readonly actions: readonly RecordedAction[];
 }
 
-/** Optional adapter extensions ratified in ticket 13 (not required on core). */
-export type RecorderSceneAdapter = SceneAdapter & {
-  readonly contractVersion?: string;
-  /**
-   * Optional native hit-test. Returns node id, node, or null.
-   * When absent, recorder falls back to top-most bbox containment via snapshot/locate.
-   */
-  hitTest?(
-    point: { x: number; y: number },
-  ):
-    | string
-    | null
-    | { id: string }
-    | Promise<string | null | { id: string }>;
-};
+/**
+ * @deprecated Use {@link SceneAdapter} — `contractVersion` + optional `hitTest`
+ * are now on the core adapter surface.
+ */
+export type RecorderSceneAdapter = SceneAdapter;
 
 /** DOM element facts under the pointer (a11y ladder inputs). */
 export interface DomElementInfo {
@@ -183,7 +173,7 @@ export type RawInputEvent =
     };
 
 export interface CreateRecorderOptions {
-  readonly adapter?: RecorderSceneAdapter;
+  readonly adapter?: SceneAdapter;
   readonly domResolver?: DomResolver;
   readonly tier?: ExecutionTier;
   readonly seed?: string;

@@ -31,6 +31,7 @@ export type { SeedInput, Seed, SeededRandom, SeedManager } from "./seed.js";
 export type { VirtualClock, ClockOptions, TimerHandle } from "./clock.js";
 
 export type {
+  SceneNodeId,
   SceneNode,
   SceneAdapter,
   SceneQuery,

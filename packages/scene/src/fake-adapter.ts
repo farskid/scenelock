@@ -1,4 +1,5 @@
-import type { BBox, RasterSurface, SceneAdapter, SceneNode } from "@scenelock/core";
+import type { BBox, RasterSurface, SceneAdapter, SceneNode, SceneNodeId } from "@scenelock/core";
+import { bboxContains } from "@scenelock/core";
 import { defineSceneAdapter } from "./adapter.js";
 import type { WorldToScreen } from "./targeting.js";
 import { transformBBox } from "./targeting.js";
@@ -29,6 +30,13 @@ export interface CreateFakeAdapterOptions {
   worldToScreen?: WorldToScreen;
   locateInScreenSpace?: boolean;
   mutatingReason?: string;
+  /** Adapter contract version. Default `"fake-v1"`. */
+  contractVersion?: string;
+  /**
+   * When false, omit native `hitTest` (bbox fallback only). Default true —
+   * top-most bbox containment in locate()/snapshot space.
+   */
+  hitTest?: boolean;
 }
 
 /**
@@ -56,10 +64,20 @@ function cloneNodes(nodes: readonly SceneNode[]): SceneNode[] {
       bbox: { ...n.bbox },
     };
     if (n.state !== undefined) copy.state = { ...n.state };
+    if (n.meta !== undefined) copy.meta = { ...n.meta };
     if (n.parentId !== undefined) copy.parentId = n.parentId;
     if (n.childIds !== undefined) copy.childIds = [...n.childIds];
     return copy;
   });
+}
+
+function locateBox(model: FakeSceneModel, id: SceneNodeId): BBox | null {
+  const node = model.nodes.find((n) => n.id === id);
+  if (!node) return null;
+  if (model.locateInScreenSpace && model.worldToScreen !== undefined) {
+    return transformBBox(node.bbox, model.worldToScreen);
+  }
+  return { ...node.bbox };
 }
 
 /**
@@ -92,17 +110,26 @@ export function createFakeAdapter(
     }
   };
 
+  const enableHitTest = options?.hitTest ?? true;
+
+  const hitTest = (point: { x: number; y: number }): SceneNodeId | null => {
+    for (let i = model.nodes.length - 1; i >= 0; i--) {
+      const node = model.nodes[i]!;
+      const box = locateBox(model, node.id) ?? node.bbox;
+      if (bboxContains(box, point.x, point.y)) {
+        return node.id;
+      }
+    }
+    return null;
+  };
+
   const base = defineSceneAdapter({
+    contractVersion: options?.contractVersion ?? "fake-v1",
     snapshot(): SceneNode[] {
       return cloneNodes(model.nodes);
     },
     locate(id: string): BBox | null {
-      const node = model.nodes.find((n) => n.id === id);
-      if (!node) return null;
-      if (model.locateInScreenSpace && model.worldToScreen !== undefined) {
-        return transformBBox(node.bbox, model.worldToScreen);
-      }
-      return { ...node.bbox };
+      return locateBox(model, id);
     },
     async settled(): Promise<void> {
       while (model.pendingMutations > 0) {
@@ -111,12 +138,17 @@ export function createFakeAdapter(
         });
       }
     },
+    ...(enableHitTest ? { hitTest } : {}),
   });
 
   return {
+    contractVersion: base.contractVersion,
     snapshot: () => base.snapshot(),
     locate: (id) => base.locate(id),
     settled: () => base.settled(),
+    ...(enableHitTest && base.hitTest !== undefined
+      ? { hitTest: (point) => base.hitTest!(point) }
+      : {}),
     model,
     setNodes(next) {
       model.nodes = cloneNodes(next);

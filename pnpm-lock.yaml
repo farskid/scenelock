@@ -56,9 +56,6 @@ importers:
       '@scenelock/core':
         specifier: workspace:*
         version: link:../core
-      playwright:
-        specifier: ^1.49.0
-        version: 1.62.0
 
   packages/core: {}
 
@@ -118,6 +115,9 @@ importers:
       '@scenelock/core':
         specifier: workspace:*
         version: link:../core
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.20.1)
 
 packages:
 

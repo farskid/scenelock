@@ -2,6 +2,13 @@
 
 Scene contract kit: query retained-model snapshots, aim real pointers via `locate()`, wait for `settled()`, and validate community adapters.
 
+## `SceneAdapter` (core)
+
+Required: `contractVersion`, `snapshot()`, `locate(id)`, `settled()`.
+Optional: `hitTest(point) → SceneNodeId | null` (native pick; kits fall back to bbox).
+
+`SceneNode` carries interaction flags in `state` and optional host/engine extras in top-level `meta` (not under `state`).
+
 ## Public surface
 
 | Export | Role |
@@ -9,9 +16,14 @@ Scene contract kit: query retained-model snapshots, aim real pointers via `locat
 | `createSceneQuery` / `queryAdapter` | Strict `getByRole` / `getBySceneId` / `getByState`, filter + subtree scope |
 | `resolvePointerTarget` | `locate` → bbox center → optional `worldToScreen` |
 | `awaitSettled` | Timeout + diagnostic; optional step callback to pump frames |
-| `createFakeAdapter` | In-memory reference adapter for unit tests |
-| `createAdapterConformanceTests` | Vitest suite adapter authors must pass |
+| `createFakeAdapter` | In-memory reference adapter for unit tests (`contractVersion: "fake-v1"`, optional hitTest) |
+| `createAdapterConformanceTests` | Vitest suite: shape + locate consistency + optional hitTest(center) → self/ancestor |
 | `defineSceneAdapter` | Validate + return a host adapter |
+
+## Harness scene queries (`@scenelock/harness`)
+
+`t.scene.*` is **live-by-default**: each query / `snapshot()` re-reads `adapter.snapshot()`.
+Call `t.scene.freeze()` to pin; `t.scene.refresh()` forces a new snapshot (updates the pin when frozen).
 
 ## Library-adapter distribution
 

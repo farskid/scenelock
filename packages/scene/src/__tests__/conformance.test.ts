@@ -27,8 +27,19 @@ describe("adapter helpers", () => {
       defineSceneAdapter({
         snapshot: () => [],
         locate: () => null,
+        settled: async () => {},
       } as never),
     ).toThrow(/Invalid SceneAdapter/);
+  });
+
+  it("defineSceneAdapter rejects missing contractVersion", () => {
+    expect(() =>
+      defineSceneAdapter({
+        snapshot: () => [],
+        locate: () => null,
+        settled: async () => {},
+      } as never),
+    ).toThrow(/contractVersion/);
   });
 
   it("renderRasterSurface normalizes sync frames", async () => {

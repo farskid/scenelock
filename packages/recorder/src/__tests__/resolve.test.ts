@@ -7,7 +7,7 @@ import {
   resolvePointTarget,
   resolveSceneLocator,
 } from "../resolve.js";
-import type { RecorderSceneAdapter } from "../types.js";
+import type { SceneAdapter } from "@scenelock/core";
 
 describe("locator ladder resolution", () => {
   it("prefers unique role+name over testId", async () => {
@@ -95,7 +95,7 @@ describe("locator ladder resolution", () => {
       { id: "a", role: "rect", name: "A", bbox: { x: 0, y: 0, width: 50, height: 50 } },
       { id: "b", role: "rect", name: "B", bbox: { x: 0, y: 0, width: 50, height: 50 } },
     ]);
-    const adapter: RecorderSceneAdapter = {
+    const adapter: SceneAdapter = {
       ...base,
       contractVersion: "1",
       hitTest: () => "b",

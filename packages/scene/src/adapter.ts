@@ -1,7 +1,7 @@
 import type { SceneAdapter } from "@scenelock/core";
 
 /**
- * Runtime guard for host adapters — ensures the three required methods exist.
+ * Runtime guard for host adapters — ensures required methods + contractVersion.
  *
  * Library adapters (`@scenelock/adapter-tldraw`, …) should call this once at
  * construction; apps typically use {@link defineSceneAdapter} instead.
@@ -12,10 +12,12 @@ export function assertSceneAdapter(value: unknown): asserts value is SceneAdapte
     value === null ||
     typeof (value as SceneAdapter).snapshot !== "function" ||
     typeof (value as SceneAdapter).locate !== "function" ||
-    typeof (value as SceneAdapter).settled !== "function"
+    typeof (value as SceneAdapter).settled !== "function" ||
+    typeof (value as SceneAdapter).contractVersion !== "string" ||
+    (value as SceneAdapter).contractVersion.length === 0
   ) {
     throw new Error(
-      "Invalid SceneAdapter: expected { snapshot(), locate(id), settled() }",
+      "Invalid SceneAdapter: expected { contractVersion, snapshot(), locate(id), settled() }",
     );
   }
 }

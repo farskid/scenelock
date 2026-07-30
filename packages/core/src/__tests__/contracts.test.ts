@@ -41,22 +41,36 @@ describe("@scenelock/core contracts", () => {
     expect(sample.artifacts.actualGolden).toBeDefined();
   });
 
-  it("scene adapter surface is snapshot / locate / settled", () => {
+  it("scene adapter surface is snapshot / locate / settled / contractVersion", () => {
     const nodes: SceneNode[] = [
       {
         id: "rect-1",
         role: "shape",
         name: "Rectangle",
         bbox: { x: 0, y: 0, width: 100, height: 50 },
+        meta: { compositionId: "comp-1" },
+        state: { selected: true },
       },
     ];
     const adapter: SceneAdapter = {
+      contractVersion: "test-v1",
       snapshot: () => nodes,
       locate: (id) => nodes.find((n) => n.id === id)?.bbox ?? null,
       settled: async () => {},
+      hitTest: (point) =>
+        nodes.find(
+          (n) =>
+            point.x >= n.bbox.x &&
+            point.x < n.bbox.x + n.bbox.width &&
+            point.y >= n.bbox.y &&
+            point.y < n.bbox.y + n.bbox.height,
+        )?.id ?? null,
     };
+    expect(adapter.contractVersion).toBe("test-v1");
     expect(adapter.snapshot()).toHaveLength(1);
     expect(adapter.locate("rect-1")).toEqual(nodes[0]?.bbox);
+    expect(nodes[0]?.meta?.compositionId).toBe("comp-1");
+    expect(adapter.hitTest?.({ x: 10, y: 10 })).toBe("rect-1");
     expect(bboxCenter(nodes[0]!.bbox)).toEqual({ x: 50, y: 25 });
     expect(bboxContains(nodes[0]!.bbox, 10, 10)).toBe(true);
   });

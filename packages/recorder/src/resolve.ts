@@ -1,6 +1,7 @@
 import {
   bboxContains,
   type DomLocator,
+  type SceneAdapter,
   type SceneNode,
 } from "@scenelock/core";
 import type {
@@ -8,7 +9,6 @@ import type {
   DomResolver,
   RecordedSceneLocator,
   RecordedTarget,
-  RecorderSceneAdapter,
 } from "./types.js";
 
 /**
@@ -58,15 +58,14 @@ export async function resolveDomTarget(
  * Prefers optional `adapter.hitTest`; else top-most bbox via snapshot/locate.
  */
 export async function hitTestScene(
-  adapter: RecorderSceneAdapter,
+  adapter: SceneAdapter,
   point: { x: number; y: number },
 ): Promise<SceneNode | null> {
   if (adapter.hitTest !== undefined) {
     const hit = await Promise.resolve(adapter.hitTest(point));
     if (hit === null || hit === undefined) return null;
-    const id = typeof hit === "string" ? hit : hit.id;
     const nodes = await Promise.resolve(adapter.snapshot());
-    return nodes.find((n) => n.id === id) ?? null;
+    return nodes.find((n) => n.id === hit) ?? null;
   }
 
   const nodes = await Promise.resolve(adapter.snapshot());
@@ -83,7 +82,7 @@ export async function hitTestScene(
 
 /** Prefer unique role(+name); else stable scene id. */
 export async function resolveSceneLocator(
-  adapter: RecorderSceneAdapter,
+  adapter: SceneAdapter,
   node: SceneNode,
 ): Promise<RecordedSceneLocator> {
   const nodes = await Promise.resolve(adapter.snapshot());
@@ -101,7 +100,7 @@ export async function resolveSceneLocator(
 }
 
 export async function resolveSceneTarget(
-  adapter: RecorderSceneAdapter,
+  adapter: SceneAdapter,
   point: { x: number; y: number },
 ): Promise<RecordedTarget | null> {
   const node = await hitTestScene(adapter, point);
@@ -111,7 +110,7 @@ export async function resolveSceneTarget(
 }
 
 export interface ResolvePointOptions {
-  readonly adapter?: RecorderSceneAdapter;
+  readonly adapter?: SceneAdapter;
   readonly domResolver?: DomResolver;
   /** Prefer DOM, canvas, or try DOM then scene. */
   readonly surface?: "dom" | "canvas" | "auto";

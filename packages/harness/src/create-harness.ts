@@ -69,6 +69,8 @@ interface HarnessState {
   stepLoop: StepLoopDriver | undefined;
   goldenStore: HarnessGoldenStore | undefined;
   query: SceneQueryEngine | undefined;
+  /** When true, sync queries + snapshot reuse the pinned query until refresh(). */
+  sceneFrozen: boolean;
   disposed: boolean;
   /** Realm clock install for deterministic tiers. */
   clockInstalled: boolean;
@@ -166,6 +168,42 @@ async function refreshQuery(state: HarnessState): Promise<SceneQueryEngine> {
   return state.query;
 }
 
+/**
+ * Live-by-default query load: re-snapshot unless frozen.
+ * Sync adapters re-read on every sync query. Async adapters cannot; use the last
+ * `await refresh()` / harness boot snapshot (call `refresh()` after mutations).
+ */
+function requireQuerySync(state: HarnessState): SceneQueryEngine {
+  assertTierCapability(state.tier, "scene");
+  if (state.adapter === undefined) {
+    throw new Error(
+      "createHarness: t.scene requires an adapter (pass adapter or bind a page scene bridge)",
+    );
+  }
+  if (state.sceneFrozen && state.query !== undefined) {
+    return state.query;
+  }
+  const result = state.adapter.snapshot();
+  if (result instanceof Promise) {
+    if (state.query !== undefined) {
+      return state.query;
+    }
+    throw new Error(
+      "t.scene: snapshot not loaded — await t.scene.refresh() first (async adapter.snapshot())",
+    );
+  }
+  state.query = createSceneQuery(result);
+  return state.query;
+}
+
+async function requireQueryLive(state: HarnessState): Promise<SceneQueryEngine> {
+  assertTierCapability(state.tier, "scene");
+  if (state.sceneFrozen && state.query !== undefined) {
+    return state.query;
+  }
+  return refreshQuery(state);
+}
+
 function createUiSurface(state: HarnessState): UiSurface {
   const locate = (locator: Locator): UiHandle => {
     assertTierCapability(state.tier, "ui");
@@ -210,44 +248,34 @@ function createUiSurface(state: HarnessState): UiSurface {
 }
 
 function createSceneSurface(state: HarnessState): SceneSurface {
-  const requireQuery = async (): Promise<SceneQueryEngine> => {
-    assertTierCapability(state.tier, "scene");
-    return state.query ?? refreshQuery(state);
-  };
-
   return {
     getByRole(role: string, options?: GetByRoleOptions): SceneHandle {
-      assertTierCapability(state.tier, "scene");
-      if (state.query === undefined) {
-        throw new Error(
-          "t.scene.getByRole: snapshot not loaded — await t.scene.refresh() first, or use async snapshot()",
-        );
-      }
-      const node = state.query.getByRole(role, options);
+      const node = requireQuerySync(state).getByRole(role, options);
       return { kind: "scene", id: node.id, node };
     },
     getBySceneId(id: string): SceneHandle {
-      assertTierCapability(state.tier, "scene");
-      if (state.query === undefined) {
-        throw new Error("t.scene.getBySceneId: snapshot not loaded — await t.scene.refresh() first");
-      }
-      const node = state.query.getBySceneId(id);
+      const node = requireQuerySync(state).getBySceneId(id);
       return { kind: "scene", id: node.id, node };
     },
     getByState(predicate: (node: SceneNode) => boolean): SceneHandle {
-      assertTierCapability(state.tier, "scene");
-      if (state.query === undefined) {
-        throw new Error("t.scene.getByState: snapshot not loaded — await t.scene.refresh() first");
-      }
-      const node = state.query.getByState(predicate);
+      const node = requireQuerySync(state).getByState(predicate);
       return { kind: "scene", id: node.id, node };
     },
     async snapshot(): Promise<SceneNode[]> {
-      const q = await requireQuery();
+      const q = await requireQueryLive(state);
       return [...q.nodes];
     },
     async refresh(): Promise<void> {
-      await requireQuery();
+      assertTierCapability(state.tier, "scene");
+      await refreshQuery(state);
+    },
+    freeze(): void {
+      assertTierCapability(state.tier, "scene");
+      if (state.query === undefined) {
+        // Pin whatever a sync snapshot can load now.
+        requireQuerySync(state);
+      }
+      state.sceneFrozen = true;
     },
   };
 }
@@ -574,6 +602,7 @@ export async function createHarness(options: CreateHarnessOptions): Promise<Test
     stepLoop: options.stepLoop,
     goldenStore: options.goldenStore,
     query: undefined,
+    sceneFrozen: false,
     disposed: false,
     clockInstalled: caps.determinism,
   };

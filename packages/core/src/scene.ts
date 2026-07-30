@@ -6,28 +6,40 @@ import type { BBox } from "./bbox.js";
  * One DSL spans DOM chrome + canvas surface.
  */
 
+/** Stable id within the host retained model. */
+export type SceneNodeId = string;
+
 /** Stable scene node identity + a11y-shaped metadata for agent/AX-cheap traces. */
 export interface SceneNode {
   /** Stable id within the host retained model. */
-  id: string;
+  id: SceneNodeId;
   /** ARIA-like role (e.g. "shape", "layer", "handle", "textbox"). */
   role: string;
   /** Accessible / display name. */
   name: string;
   bbox: BBox;
-  /** Host-defined state bag (selected, locked, opacity, …). */
+  /**
+   * Host-defined interaction state (selected, locked, opacity, …).
+   * Keep engine/host extras on {@link SceneNode.meta}, not here.
+   */
   state?: Readonly<Record<string, unknown>>;
+  /**
+   * Optional host/engine extras (composition id, layer flags, …).
+   * Not interaction state — use {@link SceneNode.state} for selected/locked/etc.
+   */
+  meta?: Readonly<Record<string, unknown>>;
   /** Optional parent id for tree structure. */
-  parentId?: string;
+  parentId?: SceneNodeId;
   /** Optional children ids (retained order). */
-  childIds?: readonly string[];
+  childIds?: readonly SceneNodeId[];
 }
 
 /**
  * Host-provided adapter. Library adapters (tldraw, Konva, …) implement this once;
  * apps wire it in a single file.
  *
- * Keep this surface minimal: `snapshot` / `locate` / `settled`.
+ * Required: `snapshot` / `locate` / `settled` / `contractVersion`.
+ * Optional: `hitTest` (native pick; recorder falls back to bbox containment).
  *
  * Kit-level helpers (live in `@scenelock/scene`, not on this interface):
  * - **worldToScreen** — camera/viewport transform from locate()-space to pointer
@@ -36,6 +48,11 @@ export interface SceneNode {
  *   (`AwaitSettledOptions`: `timeoutMs`, `step`, `stepDeltaMs`, `diagnose`).
  */
 export interface SceneAdapter {
+  /**
+   * Host contract version string (e.g. `"creator-engine-v1"`, `"toy-v1"`).
+   * Recorder sessions record this for replay / codegen metadata.
+   */
+  readonly contractVersion: string;
   /** Full retained-model snapshot for asserts + agent traces. */
   snapshot(): SceneNode[] | Promise<SceneNode[]>;
   /**
@@ -44,13 +61,21 @@ export interface SceneAdapter {
    * Bboxes are typically screen-space; apply kit `worldToScreen` when the host
    * reports world coordinates.
    */
-  locate(id: string): BBox | null | Promise<BBox | null>;
+  locate(id: SceneNodeId): BBox | null | Promise<BBox | null>;
   /**
    * Wait until the host is settled (queue drained, frame rendered, mirrors quiet).
    * Kills wait-guessing / fixed sleeps.
    * For timeout + step-pumping, wrap with `@scenelock/scene` `awaitSettled`.
    */
   settled(): Promise<void>;
+  /**
+   * Optional native hit-test at a screen point.
+   * Returns the node id under the point, or null when nothing is hittable.
+   * When absent, kits fall back to top-most bbox containment via snapshot/locate.
+   */
+  hitTest?(
+    point: { x: number; y: number },
+  ): SceneNodeId | null | Promise<SceneNodeId | null>;
 }
 
 export interface SceneQuery {

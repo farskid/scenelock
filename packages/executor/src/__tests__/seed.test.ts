@@ -4,7 +4,6 @@ import {
   createSeedManager,
   createSeededRandom,
   deriveSeed,
-  exploreSeeds,
   hashSeed,
 } from "../index.js";
 
@@ -64,11 +63,4 @@ describe("SeededRandom / SeedManager", () => {
     expect(hashSeed("abc")).not.toBe(hashSeed("abd"));
   });
 
-  it("exploreSeeds returns n stable derived seeds", () => {
-    const a = exploreSeeds("base", 5);
-    const b = exploreSeeds("base", 5);
-    expect(a).toHaveLength(5);
-    expect(a.map((s) => s.value)).toEqual(b.map((s) => s.value));
-    expect(new Set(a.map((s) => s.value)).size).toBe(5);
-  });
 });

@@ -262,6 +262,7 @@ describe("session + scene bridge", () => {
   it("getBySceneId aims pointer at locate() bbox center", async () => {
     const driver = new FakePageDriver();
     const scene: SceneAdapter = {
+      contractVersion: "browser-test-v1",
       snapshot: () => [
         {
           id: "rect-1",
@@ -286,6 +287,7 @@ describe("session + scene bridge", () => {
   it("page scene adapter bridge via evaluate()", async () => {
     const driver = new FakePageDriver({
       pageSceneAdapter: {
+        contractVersion: "page-test-v1",
         snapshot: () => [
           { id: "n1", role: "shape", name: "A", bbox: { x: 0, y: 0, width: 20, height: 20 } },
         ],
@@ -295,7 +297,7 @@ describe("session + scene bridge", () => {
       },
     });
 
-    const adapter = createPageSceneAdapter(driver);
+    const adapter = createPageSceneAdapter(driver, { contractVersion: "page-test-v1" });
     const nodes = await adapter.snapshot();
     expect(nodes).toHaveLength(1);
     expect(await adapter.locate("n1")).toEqual({ x: 0, y: 0, width: 20, height: 20 });

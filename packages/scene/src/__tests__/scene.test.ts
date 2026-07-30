@@ -19,6 +19,7 @@ describe("@scenelock/scene smoke", () => {
     expect(matchSceneNode(nodes[0]!, { id: "a" })).toBe(true);
 
     const adapter = defineSceneAdapter({
+      contractVersion: "scene-smoke-v1",
       snapshot: () => nodes,
       locate: (id) => nodes.find((n) => n.id === id)?.bbox ?? null,
       settled: async () => {},

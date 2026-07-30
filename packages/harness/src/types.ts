@@ -50,9 +50,22 @@ export interface SceneSurface {
   getByRole(role: string, options?: GetByRoleOptions): SceneHandle;
   getBySceneId(id: string): SceneHandle;
   getByState(predicate: (node: SceneNode) => boolean): SceneHandle;
+  /**
+   * Live by default: re-snapshots the adapter unless {@link freeze} pinned a query.
+   */
   snapshot(): Promise<SceneNode[]>;
-  /** Refresh the query engine from the live adapter. */
+  /**
+   * Force a fresh `adapter.snapshot()` into the query cache.
+   * When frozen, updates the pinned snapshot (stays frozen).
+   */
   refresh(): Promise<void>;
+  /**
+   * Pin the current query snapshot. Subsequent sync queries + `snapshot()` reuse
+   * the pin until {@link refresh} (which updates the pin) or a new harness.
+   * Live mode (default) always re-reads the adapter — use freeze for determinism
+   * across intentional mid-test mutations you do not want reflected yet.
+   */
+  freeze(): void;
 }
 
 export interface UserSurface {

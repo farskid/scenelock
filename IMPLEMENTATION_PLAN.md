@@ -134,12 +134,22 @@ Commit `31605f2`. All packages implemented against frozen core; 118 tests green.
 - [x] `emitTest` → `createHarness` DSL file; `emitLog` → machine JSON; checkpoint stubs
 - [x] Unit + codegen typecheck tests
 
+## Wave 5 — Packaging (done)
+
+- [x] Per-package `tsc` → `dist/` (ESM `.js` + `.d.ts`); root `pnpm -r --sort run build`
+- [x] `exports` → `dist` (`types` + `import`); `files: ["dist"]`; versions `0.1.0`; `workspace:*` internals
+- [x] `@scenelock/browser`: `playwright` optional peer only (not a hard dependency)
+- [x] `@scenelock/scene/conformance` subpath; main entry stripped of vitest-backed re-export at build
+- [x] Tarball pack + external install smoke (`createHarness` scene + fake adapter)
+- [x] README Install + CONTRIBUTING build/test; npm publish still deferred
+
 ## Remains
 
 | Item | Notes |
 | --- | --- |
 | **CLI** | Seed flags, `--update` goldens, failure-envelope reporter, walk replay, tier budget gate, recorder `-o` |
 | **Real host spikes** | Creator / tldraw (or similar) adapter + scene-tier suite |
+| **npm publish** | Packaging shape ready; registry publish deferred |
 | Optional | GitHub Actions matrix; browser-tier nightly; library `@scenelock/adapter-*` packages |
 
 ---
@@ -166,5 +176,5 @@ Commit `31605f2`. All packages implemented against frozen core; 118 tests green.
 - CDP virtual time as Creator foundation
 - Tolerance-based visual diffs
 - Hypervisor-level determinism (rr / Antithesis)
-- Publishing to npm (packaging shape TBD)
+- Publishing to npm (packaging done; registry publish deferred)
 - Creator / tldraw / Stately product PRs (downstream adopters)

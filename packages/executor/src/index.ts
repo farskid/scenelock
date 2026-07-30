@@ -49,7 +49,12 @@ export {
   ExecutorFailure,
   type BuildFailureEnvelopeOptions,
 } from "./failure.js";
-export { exploreSeeds } from "./explore.js";
+export {
+  exploreSeeds,
+  type ExploreSeedsOptions,
+  type ExploreSeedFailure,
+  type ExploreSeedsResult,
+} from "./explore.js";
 export {
   createExecutor,
   runWithSeed,

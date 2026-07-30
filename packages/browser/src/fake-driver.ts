@@ -39,9 +39,11 @@ export interface FakePageDriverOptions {
   readonly crossOriginIsolated?: boolean;
   /** Optional page-side scene adapter callable from evaluate. */
   readonly pageSceneAdapter?: {
+    contractVersion?: string;
     snapshot: () => unknown;
     locate: (id: string) => BBox | null;
     settled: () => Promise<void>;
+    hitTest?: (point: { x: number; y: number }) => string | null;
   };
 }
 

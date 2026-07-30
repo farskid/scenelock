@@ -1,4 +1,4 @@
-import type { BBox, SceneAdapter, SceneNode } from "@scenelock/core";
+import type { BBox, SceneAdapter, SceneNode, SceneNodeId } from "@scenelock/core";
 import { bboxCenter } from "@scenelock/core";
 import { describe, expect, it } from "vitest";
 import { assertSceneAdapter } from "./adapter.js";
@@ -28,7 +28,11 @@ function isSceneNode(value: unknown): value is SceneNode {
     typeof n.bbox.x === "number" &&
     typeof n.bbox.y === "number" &&
     typeof n.bbox.width === "number" &&
-    typeof n.bbox.height === "number"
+    typeof n.bbox.height === "number" &&
+    (n.meta === undefined ||
+      (typeof n.meta === "object" && n.meta !== null && !Array.isArray(n.meta))) &&
+    (n.state === undefined ||
+      (typeof n.state === "object" && n.state !== null && !Array.isArray(n.state)))
   );
 }
 
@@ -41,12 +45,29 @@ function bboxEqual(a: BBox, b: BBox, epsilon = 1e-6): boolean {
   );
 }
 
+/** True when `candidateId` is `nodeId` or an ancestor via `parentId`. */
+function isSelfOrAncestor(
+  nodes: readonly SceneNode[],
+  nodeId: SceneNodeId,
+  candidateId: SceneNodeId,
+): boolean {
+  if (nodeId === candidateId) return true;
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  let cur = byId.get(nodeId);
+  while (cur?.parentId !== undefined) {
+    if (cur.parentId === candidateId) return true;
+    cur = byId.get(cur.parentId);
+  }
+  return false;
+}
+
 /**
  * Reusable vitest suite any adapter author runs to validate their adapter.
  * Call inside a test file (top-level or nested `describe`).
  *
- * Checks: adapter shape, snapshot node schema, locate↔snapshot bbox consistency,
- * unknown-id null, and settled() resolution.
+ * Checks: adapter shape (incl. contractVersion), snapshot node schema, locate↔snapshot
+ * bbox consistency, unknown-id null, settled() resolution, and when `hitTest` is
+ * present: hitTest(center of each node bbox) returns that node or an ancestor.
  *
  * @example
  * ```ts
@@ -65,9 +86,10 @@ export function createAdapterConformanceTests(
   const suiteName = options?.suiteName ?? "SceneAdapter conformance";
 
   describe(suiteName, () => {
-    it("exposes snapshot / locate / settled", async () => {
+    it("exposes contractVersion / snapshot / locate / settled", async () => {
       const adapter = await Promise.resolve(factory());
       assertSceneAdapter(adapter);
+      expect(adapter.contractVersion.length).toBeGreaterThan(0);
     });
 
     it("snapshot() returns well-formed SceneNode[]", async () => {
@@ -115,6 +137,21 @@ export function createAdapterConformanceTests(
     it("settled() resolves", async () => {
       const adapter = await Promise.resolve(factory());
       await expect(adapter.settled()).resolves.toBeUndefined();
+    });
+
+    it("hitTest(center) returns the node or an ancestor when hitTest is present", async () => {
+      const adapter = await Promise.resolve(factory());
+      if (adapter.hitTest === undefined) return;
+
+      const nodes = await Promise.resolve(adapter.snapshot());
+      for (const n of nodes) {
+        if (isDegenerateBBox(n.bbox)) continue;
+        const center = bboxCenter(n.bbox);
+        const hit = await Promise.resolve(adapter.hitTest(center));
+        expect(hit).not.toBeNull();
+        if (hit === null) continue;
+        expect(isSelfOrAncestor(nodes, n.id, hit)).toBe(true);
+      }
     });
   });
 }

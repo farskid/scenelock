@@ -82,7 +82,7 @@ export function createRecorder(options: CreateRecorderOptions = {}): Recorder {
     tier,
     ...(seed !== undefined ? { seed } : {}),
     ...(title !== undefined ? { title } : {}),
-    ...(adapter?.contractVersion !== undefined
+    ...(adapter !== undefined
       ? { adapterContractVersion: adapter.contractVersion }
       : {}),
   });
@@ -318,7 +318,7 @@ export function createRecorder(options: CreateRecorderOptions = {}): Recorder {
     async flush(): Promise<void> {
       flushType();
       flushPendingClickAsClick();
-      if (adapter?.contractVersion !== undefined) {
+      if (adapter !== undefined) {
         session = {
           version: session.version,
           metadata: {
@@ -350,7 +350,7 @@ export function createRecorder(options: CreateRecorderOptions = {}): Recorder {
         tier,
         ...(seed !== undefined ? { seed } : {}),
         ...(title !== undefined ? { title } : {}),
-        ...(adapter?.contractVersion !== undefined
+        ...(adapter !== undefined
           ? { adapterContractVersion: adapter.contractVersion }
           : {}),
       });

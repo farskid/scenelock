@@ -32,6 +32,37 @@ The browser tier wraps **Playwright** (library, not a re-export of `@playwright/
 
 ---
 
+## Install
+
+Packages ship as ESM from `dist/` (`"exports"` → `types` + `import`). Current version: **0.1.0**. npm publish is deferred; consume via packed tarballs:
+
+```bash
+pnpm install
+pnpm build
+
+# from each packages/<name> (topo order if packing by hand):
+pnpm pack
+# → e.g. packages/harness/scenelock-harness-0.1.0.tgz
+```
+
+Install a consumer (outside this repo) with harness + its dependency tarballs. Because packed manifests rewrite `workspace:*` → `0.1.0`, point nested deps at the tarballs via `pnpm.overrides` (or wait for npm publish):
+
+```bash
+mkdir /tmp/scenelock-app && cd /tmp/scenelock-app
+# package.json dependencies + pnpm.overrides each set to
+# file:/path/to/scenelock/packages/<name>/scenelock-<name>-0.1.0.tgz
+# for: core, executor, scene, browser, golden, harness
+pnpm install
+```
+
+`@scenelock/browser` lists `playwright` as an **optional peer** — scene-tier consumers do not pull browsers. Add `playwright` only for browser/smoke tiers. Adapter conformance lives at `@scenelock/scene/conformance` (optional `vitest` peer), not on the main scene entry.
+
+When publishing to npm later: same `files: ["dist"]` + exports map; replace tarball paths with `@scenelock/<pkg>@0.1.0` (overrides unnecessary once packages are on the registry).
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for build/test commands.
+
+---
+
 ## Quickstart (toy host)
 
 ```ts
