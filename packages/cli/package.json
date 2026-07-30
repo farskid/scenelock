@@ -1,0 +1,37 @@
+{
+  "name": "@scenelock/cli",
+  "version": "0.1.0",
+  "description": "Scenelock CLI — run, replay, budget gate, recorder codegen",
+  "type": "module",
+  "bin": {
+    "scenelock": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --config ../../vitest.config.ts --dir ."
+  },
+  "dependencies": {
+    "@scenelock/core": "workspace:*",
+    "@scenelock/harness": "workspace:*",
+    "@scenelock/recorder": "workspace:*"
+  },
+  "peerDependencies": {
+    "vitest": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vitest": {
+      "optional": true
+    }
+  },
+  "license": "MIT"
+}

@@ -42,10 +42,10 @@ Wave 1 ran under a core freeze. **Wave 2 lifted the freeze** for the integrator:
                   ▼
          @scenelock/harness              ← unified DSL + tiering
                   │
-                  ├──────────────┐
-                  ▼              ▼
-         @scenelock/recorder   examples/toy-canvas-app
-         (record → DSL files)
+                  ├──────────────┬──────────────┐
+                  ▼              ▼              ▼
+         @scenelock/recorder   @scenelock/cli  examples/toy-canvas-app
+         (record → DSL files)  (vitest wrap)
 ```
 
 ---
@@ -143,14 +143,24 @@ Commit `31605f2`. All packages implemented against frozen core; 118 tests green.
 - [x] Tarball pack + external install smoke (`createHarness` scene + fake adapter)
 - [x] README Install + CONTRIBUTING build/test; npm publish still deferred
 
+## Wave 6 — CLI (done)
+
+- [x] `@scenelock/cli` `0.1.0` — bin `scenelock` (Node stdlib arg parse; no commander)
+- [x] `run` — child-process `vitest run` + tier filename includes; `SCENELOCK_SEED` / `UPDATE_GOLDENS`; JSON summary (`FailureEnvelope`-shaped failures)
+- [x] `replay --seed` — pinned seed sugar + reproduction command
+- [x] `budget --report` — `tierFromFilename` + `TierBudget` CI gate
+- [x] `record --out --session` — offline `parseSession` + `emitTest` / `emitLog`
+- [x] Unit + integration tests (toy scene-tier harness via real CLI spawn)
+
+**Env gaps (harness / golden — not CLI):** harness `createHarness` does not yet default `seed` from `process.env.SCENELOCK_SEED`; golden store does not auto-honor `UPDATE_GOLDENS` (host tests must pass `update`).
+
 ## Remains
 
 | Item | Notes |
 | --- | --- |
-| **CLI** | Seed flags, `--update` goldens, failure-envelope reporter, walk replay, tier budget gate, recorder `-o` |
 | **Real host spikes** | Creator / tldraw (or similar) adapter + scene-tier suite |
 | **npm publish** | Packaging shape ready; registry publish deferred |
-| Optional | GitHub Actions matrix; browser-tier nightly; library `@scenelock/adapter-*` packages |
+| Optional | GitHub Actions matrix; browser-tier nightly; library `@scenelock/adapter-*` packages; harness `SCENELOCK_SEED` env pickup |
 
 ---
 
@@ -167,6 +177,7 @@ Commit `31605f2`. All packages implemented against frozen core; 118 tests green.
 | `StateModel`, walks, invariants | `core` | `discovery` |
 | `GoldenCompare`, `RasterFrame`, `GoldenDiff` | `core` | `golden` |
 | Recording session + harness codegen | `recorder` | `recorder` (consumes harness / scene / browser) |
+| CLI (`run` / `replay` / `budget` / `record`) | — | `cli` (vitest child process + recorder codegen) |
 
 ---
 

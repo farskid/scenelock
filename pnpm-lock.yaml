@@ -56,6 +56,25 @@ importers:
       '@scenelock/core':
         specifier: workspace:*
         version: link:../core
+    devDependencies:
+      playwright:
+        specifier: ^1.62.0
+        version: 1.62.0
+
+  packages/cli:
+    dependencies:
+      '@scenelock/core':
+        specifier: workspace:*
+        version: link:../core
+      '@scenelock/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@scenelock/recorder':
+        specifier: workspace:*
+        version: link:../recorder
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@22.20.1)
 
   packages/core: {}
 

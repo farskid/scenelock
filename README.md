@@ -10,9 +10,9 @@ Flake becomes a seed you can replay. Canvas apps stop being second-class. “Wha
 
 ## Status
 
-**Harness DSL + recorder** — `@scenelock/harness` unifies scene / browser / golden / smoke behind `createHarness`. `@scenelock/recorder` emits harness DSL files + machine JSON (non-interactive; a11y/scene locators, never Inspector-copy).
+**Harness DSL + recorder + CLI** — `@scenelock/harness` unifies scene / browser / golden / smoke behind `createHarness`. `@scenelock/recorder` emits harness DSL files + machine JSON. `@scenelock/cli` (`scenelock`) wraps vitest for tiered runs, seed replay, budget gates, and offline session→test codegen.
 
-Still ahead: CLI, real host spikes (Creator / tldraw).
+Still ahead: real host spikes (Creator / tldraw); npm publish.
 
 ---
 
@@ -160,6 +160,31 @@ See `examples/toy-canvas-app` for a retained-model host with software raster + s
 | `@scenelock/golden` | Bit-exact golden comparison |
 | `@scenelock/harness` | Unified `createHarness` DSL + tiering |
 | `@scenelock/recorder` | Non-interactive record → harness DSL + machine log |
+| `@scenelock/cli` | `scenelock` bin — run / replay / budget / record |
+
+### CLI
+
+```bash
+pnpm build
+pnpm exec scenelock run --tier scene examples/toy-canvas-app --reporter json
+pnpm exec scenelock replay --seed demo-42 examples/toy-canvas-app/src/__tests__/harness.test.ts
+pnpm exec scenelock budget --report vitest-report.json --budget browser+smoke=0.35
+pnpm exec scenelock record --out flow.test.ts --session session.json --log flow.session.json
+```
+
+| Command | Role |
+| --- | --- |
+| `run [globs] [--tier] [--seed] [--update-goldens] [--budget browser+smoke=r] [--reporter json\|line] [--json-file]` | Spawns `vitest run` with tier filename globs; sets env; optional FailureEnvelope JSON summary |
+| `replay --seed <s> [globs]` | Pins `SCENELOCK_SEED`, single run, prints reproduction command |
+| `budget --report <vitest-json>` | Tier distribution + ratio CI gate (exit 1 on violation) |
+| `record --out … --session …` | Offline `parseSession` + `emitTest` (+ optional `emitLog`) |
+
+**Env contract**
+
+| Variable | Set by | Notes |
+| --- | --- | --- |
+| `SCENELOCK_SEED` | `--seed` / `replay` | Documented default for `createHarness({ seed })`. **Harness does not read this env yet** — pass `seed` explicitly (or wire pickup in harness). |
+| `UPDATE_GOLDENS=1` | `--update-goldens` | Host tests should pass `update` / `updateGoldens` into golden stores; `DirectoryGoldenStore` does not auto-read the env. |
 
 ### Recorder (agent-friendly)
 

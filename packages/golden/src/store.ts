@@ -170,7 +170,12 @@ export class DirectoryGoldenStore implements GoldenStore {
     options: GoldenCompareOptions & { updateGoldens?: boolean } = {},
   ): Promise<GoldenRunResult> {
     this.markOwned(testId);
-    const update = options.update === true || options.updateGoldens === true;
+    // CLI contract: `scenelock run --update-goldens` sets UPDATE_GOLDENS=1;
+    // explicit options still win (false disables even with env set).
+    const envUpdate =
+      typeof process !== "undefined" && process.env?.["UPDATE_GOLDENS"] === "1";
+    const update =
+      options.update ?? options.updateGoldens ?? (envUpdate ? true : false);
     const key = options.suite ? `${options.suite}/${testId}` : testId;
 
     const entry = await this.readEntry(key);

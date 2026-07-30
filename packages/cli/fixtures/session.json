@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "metadata": {
+    "tier": "scene",
+    "seed": "cli-record-demo",
+    "adapterContractVersion": "1",
+    "title": "cli recorded flow"
+  },
+  "actions": [
+    {
+      "kind": "click",
+      "target": {
+        "kind": "scene",
+        "locator": { "kind": "role", "role": "rect", "name": "Box" }
+      },
+      "timestamp": 0
+    },
+    {
+      "kind": "checkpoint",
+      "name": "after-click",
+      "timestamp": 0
+    }
+  ]
+}

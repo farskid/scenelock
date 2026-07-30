@@ -573,9 +573,15 @@ export async function createHarness(options: CreateHarnessOptions): Promise<Test
     // ui surface exists but actions need a driver — allow construction for gating tests
   }
 
+  // CLI contract: `scenelock run --seed` / `scenelock replay` pin the seed via
+  // SCENELOCK_SEED; an explicit option always wins over the environment.
+  const envSeed =
+    typeof process !== "undefined" ? process.env?.["SCENELOCK_SEED"] : undefined;
+  const seed = options.seed ?? (envSeed !== undefined && envSeed !== "" ? envSeed : undefined);
+
   const executor = createExecutor({
     tier,
-    ...(options.seed !== undefined ? { seed: options.seed } : {}),
+    ...(seed !== undefined ? { seed } : {}),
     ...(options.stepLoop !== undefined ? { stepLoop: options.stepLoop } : {}),
   });
 
